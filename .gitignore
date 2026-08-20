@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+out/
+.vercel/
+
+# Env
+.env
+.env.local
+*.env
+
+# OS
+.DS_Store
