@@ -41,7 +41,13 @@ def _groq_client():
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise LLMClientError("GROQ_API_KEY is not set")
-    return Groq(api_key=api_key)
+    # max_retries=0: on free-tier rate limits, fail fast into our own
+    # Groq -> Gemini fallback (see call_diagnosis_llm) instead of sitting
+    # through the SDK's internal exponential backoff (which can eat 30s+
+    # per call across a batch, since it happens before our fallback logic
+    # ever runs). timeout=20: without an explicit cap a hung request blocks
+    # the whole (sequential) batch indefinitely.
+    return Groq(api_key=api_key, max_retries=0, timeout=20.0)
 
 
 def _call_groq(system_prompt: str, user_prompt: str, tool_schema: dict) -> dict:
@@ -141,11 +147,27 @@ def _gemini_client(tool_schema: dict):
     )
 
 
+def _proto_to_python(value):
+    """Recursively convert proto-plus MapComposite/RepeatedComposite values
+    to plain dict/list. `dict(function_call.args)` only converts the top
+    level — nested object/array fields (e.g. action_params) are left as
+    MapComposite/RepeatedComposite, which fails `isinstance(x, dict)`
+    downstream in diagnosis_agent's contract validation."""
+    if hasattr(value, "items"):
+        return {k: _proto_to_python(v) for k, v in value.items()}
+    if hasattr(value, "__iter__") and not isinstance(value, (str, bytes)):
+        return [_proto_to_python(v) for v in value]
+    return value
+
+
 def _call_gemini(system_prompt: str, user_prompt: str, tool_schema: dict) -> dict:
     model = _gemini_client(tool_schema)
+    # request_options timeout: same reasoning as Groq's timeout above — a
+    # hung call here would otherwise block the whole sequential batch.
     response = model.generate_content(
         [f"{system_prompt}\n\n{user_prompt}"],
         generation_config={"temperature": 0.2},
+        request_options={"timeout": 20},
     )
 
     candidates = response.candidates or []
@@ -155,7 +177,7 @@ def _call_gemini(system_prompt: str, user_prompt: str, tool_schema: dict) -> dic
     for part in candidates[0].content.parts:
         function_call = getattr(part, "function_call", None)
         if function_call and function_call.name == tool_schema["name"]:
-            return dict(function_call.args)
+            return _proto_to_python(function_call.args)
 
     raise LLMClientError("Gemini response contained no matching function call")
 
