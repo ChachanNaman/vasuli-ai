@@ -1,4 +1,10 @@
-import type { DecisionRow, EventRow, MetricsResponse } from "./types";
+import type {
+  AuditVerifyResponse,
+  DecisionRow,
+  EventRow,
+  EvalComparisonResponse,
+  MetricsResponse,
+} from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -34,4 +40,12 @@ export function getDecisions(limit = 100) {
 
 export function getMetrics() {
   return apiFetch<MetricsResponse>("/api/metrics");
+}
+
+export function getAuditVerify() {
+  return apiFetch<AuditVerifyResponse>("/api/audit/verify");
+}
+
+export function getEvalComparison(cases = 300, seed = 42) {
+  return apiFetch<EvalComparisonResponse>(`/api/eval/comparison?cases=${cases}&seed=${seed}`);
 }

@@ -10,6 +10,7 @@ import { RecoveryByCauseChart } from "@/components/dashboard/recovery-by-cause-c
 import { RecoveryOverTimeChart } from "@/components/dashboard/recovery-over-time-chart";
 import { LiveFeed } from "@/components/dashboard/live-feed";
 import { ExceptionsTab } from "@/components/dashboard/exceptions-tab";
+import { BaselineComparison } from "@/components/dashboard/baseline-comparison";
 import { EventDrillDown } from "@/components/dashboard/event-drill-down";
 import { RunBatchButton } from "@/components/dashboard/run-batch-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,6 +58,7 @@ export default function DashboardPage() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="vs-baseline">vs. Baseline</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
@@ -90,6 +92,10 @@ export default function DashboardPage() {
 
         <TabsContent value="exceptions" className="mt-4">
           <ExceptionsTab exceptions={metricsQuery.data?.exceptions ?? []} />
+        </TabsContent>
+
+        <TabsContent value="vs-baseline" className="mt-4">
+          <BaselineComparison />
         </TabsContent>
       </Tabs>
 

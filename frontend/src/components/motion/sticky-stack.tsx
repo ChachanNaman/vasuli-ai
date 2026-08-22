@@ -11,21 +11,24 @@ interface StackCardProps {
 }
 
 /** One card in the stack — sticks at a fixed offset, then scales/dims down
- * as the next card scrolls over it. This is the "cards stacking as you
- * scroll" pattern from razorpay.com's product sections. */
+ * as the next card scrolls over it. Each card tracks its own scroll
+ * range independently, so only one card is ever "stuck" onscreen at a
+ * time (no overlap-ghosting) — the sticky window is sized close to the
+ * card's own height to keep the hand-off snappy instead of leaving dead
+ * scroll space. Pattern from razorpay.com's product sections. */
 function StackCard({ children, index, className }: StackCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
   });
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.92]);
-  const opacity = useTransform(scrollYProgress, [0, 1], [1, 0.5]);
+  const scale = useTransform(scrollYProgress, [0, 0.7], [1, 0.94]);
+  const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0.55]);
 
   return (
     <div
       ref={ref}
-      className="sticky top-20 flex h-[80vh] items-center justify-center"
+      className="sticky top-16 flex h-[58vh] items-center justify-center"
       style={{ zIndex: index + 1 }}
     >
       <motion.div style={{ scale, opacity }} className={cn("w-full", className)}>
@@ -35,7 +38,13 @@ function StackCard({ children, index, className }: StackCardProps) {
   );
 }
 
-export function StickyStack({ children, className }: { children: React.ReactNode[]; className?: string }) {
+export function StickyStack({
+  children,
+  className,
+}: {
+  children: React.ReactNode[];
+  className?: string;
+}) {
   return (
     <div className={cn("relative", className)}>
       {children.map((child, i) => (

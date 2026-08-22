@@ -104,3 +104,33 @@ export interface MetricsResponse {
   by_root_cause: MetricsByRootCause[];
   exceptions: ExceptionRow[];
 }
+
+export interface AuditVerifyResponse {
+  ok: boolean;
+  records_checked: number;
+  error: string | null;
+}
+
+export type EvalArmName = "do_nothing" | "fixed_dunning" | "vasuli" | "max_pressure";
+
+export interface EvalArmSummary {
+  cases: number;
+  total_exposure: number;
+  raw_recovered: number;
+  raw_recovery_rate_pct: number;
+  incremental_recovered: number;
+  incremental_recovery_rate_pct: number;
+  total_cost: number;
+  cost_per_rupee_recovered: number | null;
+  contacts: number;
+  contacts_per_case: number;
+  guardrail_violations: number;
+  guardrail_violations_per_case: number;
+}
+
+export interface EvalComparisonResponse {
+  n_cases: number;
+  seed: number;
+  arms: Record<EvalArmName, EvalArmSummary>;
+  recovery_by_cause: Record<EvalArmName, Record<string, { cases: number; recovery_rate_pct: number }>>;
+}

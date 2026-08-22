@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "motion/react";
-import BeamsBackground from "@/components/kokonutui/beams-background";
+import { GrainientBackground } from "@/components/motion/grainient-background";
 
 /** A page-wide ambient background whose opacity fades as the reader
  * scrolls deeper into the page — pattern adapted from motion.dev's
@@ -9,11 +9,13 @@ import BeamsBackground from "@/components/kokonutui/beams-background";
  * content. */
 export function ScrollFadeBackground() {
   const { scrollYProgress } = useScroll();
-  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.7, 1], [1, 0.7, 0.35, 0.15]);
+  // Stays present the whole way down the page (per-page cards float over
+  // it as opaque islands) — only a gentle taper, never fading to flat.
+  const opacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.82, 0.7]);
 
   return (
-    <motion.div className="fixed inset-0 -z-10" style={{ opacity }}>
-      <BeamsBackground className="h-full" intensity="subtle" />
+    <motion.div className="fixed inset-0 -z-10 bg-background" style={{ opacity }}>
+      <GrainientBackground className="h-full" />
     </motion.div>
   );
 }
