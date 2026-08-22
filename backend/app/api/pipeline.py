@@ -89,9 +89,9 @@ def process_event(event_dict: dict) -> dict:
     guardrail_result = run_guardrails(event_dict, proposed_action, past_decisions)
 
     if diagnosis is None:
-        root_cause = event_dict.get("failure_reason_code", "unknown")
+        root_cause = event_dict.get("failure_reason_code") or "unknown"
         confidence = 0.0
-        reasoning_text = f"Diagnosis agent unavailable (both LLM providers failed): routed to human review."
+        reasoning_text = "Diagnosis agent unavailable (both LLM providers failed): routed to human review."
         action_params: dict = {}
         customer_message = None
         llm_provider = None

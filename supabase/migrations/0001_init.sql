@@ -87,8 +87,8 @@ alter table events enable row level security;
 -- dashboard/live feed, restrict writes to the service role (backend only).
 create policy "public read events" on events for select using (true);
 create policy "public read decisions" on decisions for select using (true);
-create policy "service write events" on events for insert to service_role using (true) with check (true);
-create policy "service write decisions" on decisions for insert to service_role using (true) with check (true);
+create policy "service write events" on events for insert to service_role with check (true);
+create policy "service write decisions" on decisions for insert to service_role with check (true);
 
 -- Enable Supabase Realtime on decisions for the live agent feed (PRD §12.3).
 alter publication supabase_realtime add table decisions;
