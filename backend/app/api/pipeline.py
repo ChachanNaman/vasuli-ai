@@ -1,11 +1,5 @@
 """The batch pipeline: generate -> guardrail-check the LLM's proposed action
--> (Day 2: execute) -> write decision. This is the thing Day 1 task 4 asks
-to prove end-to-end.
-
-Execution (Recovery executors + outcome probability model, PRD §9) is a Day
-2 module (app/recovery/) — for now, an action that clears guardrails is
-recorded as 'executed' with a placeholder outcome so the full pipeline shape
-is provable before the outcome model exists.
+-> execute (if cleared) -> write decision.
 """
 
 from __future__ import annotations
@@ -20,6 +14,7 @@ from app.audit.logger import DecisionRecord, write_decision, write_event, write_
 from app.audit.supabase_client import get_supabase
 from app.data.generator import generate_batch
 from app.guardrails.rules import PastDecision, run_guardrails
+from app.recovery.executors import execute
 
 logger = logging.getLogger("vasuli.pipeline")
 
@@ -107,14 +102,19 @@ def process_event(event_dict: dict) -> dict:
 
     action_type = proposed_action
 
-    # Day 2 will replace this with app/recovery/executors.py + outcome_model.py.
-    recovered = False
-    amount_recovered = 0.0
-    outcome_notes = (
-        "Recovery execution not yet implemented (Day 2)."
-        if guardrail_result.action_status == "executed"
-        else guardrail_result.block_reason
-    )
+    if guardrail_result.action_status == "executed":
+        result = execute(action_type, event_dict, root_cause)
+        recovered = result.recovered
+        amount_recovered = result.amount_recovered
+        outcome_notes = result.notes
+        razorpay_payment_link = result.razorpay_payment_link
+        is_live_integration = result.is_live_integration
+    else:
+        recovered = False
+        amount_recovered = 0.0
+        outcome_notes = guardrail_result.block_reason
+        razorpay_payment_link = None
+        is_live_integration = False
 
     record = DecisionRecord(
         event_id=event_dict["event_id"],
@@ -128,8 +128,8 @@ def process_event(event_dict: dict) -> dict:
         recovered=recovered,
         amount_recovered=amount_recovered,
         outcome_notes=outcome_notes,
-        razorpay_payment_link=None,
-        is_live_integration=False,
+        razorpay_payment_link=razorpay_payment_link,
+        is_live_integration=is_live_integration,
         llm_provider=llm_provider,
         llm_fallback_used=llm_fallback_used,
         customer_message=customer_message,
