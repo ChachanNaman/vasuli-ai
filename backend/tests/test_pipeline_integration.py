@@ -77,6 +77,11 @@ def fake_supabase(monkeypatch):
     return fake
 
 
+@pytest.fixture(autouse=True)
+def no_sleep(monkeypatch):
+    monkeypatch.setattr(pipeline.time, "sleep", lambda *_args, **_kwargs: None)
+
+
 @pytest.fixture
 def fake_diagnose(monkeypatch):
     def fake(event, customer_history=None, on_fallback=None):

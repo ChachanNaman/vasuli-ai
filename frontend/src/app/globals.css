@@ -39,6 +39,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-processing: var(--processing);
+  --color-processing-foreground: var(--processing-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -123,6 +125,8 @@
   --chart-scale-04: oklch(0.68 0.02 106);
   --chart-scale-05: oklch(0.55 0.025 106);
   --chart-scale-pattern-color: oklch(0.96 0.005 106);
+  --processing: oklch(0.55 0.17 280);
+  --processing-foreground: oklch(0.98 0 0);
 }
 
 .dark {
@@ -132,47 +136,53 @@
   --card-foreground: oklch(0.97 0 0);
   --popover: oklch(0.17 0 0);
   --popover-foreground: oklch(0.97 0 0);
-  --primary: oklch(0.78 0.15 75);
-  --primary-foreground: oklch(0.15 0.02 75);
+  --primary: oklch(0.68 0.14 48);
+  --primary-foreground: oklch(0.15 0.02 48);
   --secondary: oklch(0.24 0 0);
   --secondary-foreground: oklch(0.97 0 0);
   --muted: oklch(0.22 0 0);
   --muted-foreground: oklch(0.63 0 0);
-  --accent: oklch(0.78 0.15 75 / 0.14);
-  --accent-foreground: oklch(0.83 0.14 75);
+  --accent: oklch(0.68 0.14 48 / 0.14);
+  --accent-foreground: oklch(0.76 0.13 48);
   --destructive: oklch(0.65 0.2 25);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.78 0.15 75 / 0.5);
-  --chart-1: oklch(0.78 0.15 75);
-  --chart-2: oklch(0.6 0.02 75);
+  --ring: oklch(0.68 0.14 48 / 0.5);
+  --chart-1: oklch(0.68 0.14 48);
+  --chart-2: oklch(0.6 0.02 48);
   --chart-3: oklch(0.5 0.02 260);
   --chart-4: oklch(0.65 0.2 25);
   --chart-5: oklch(0.4 0 0);
   --sidebar: oklch(0.15 0 0);
   --sidebar-foreground: oklch(0.97 0 0);
-  --sidebar-primary: oklch(0.78 0.15 75);
-  --sidebar-primary-foreground: oklch(0.15 0.02 75);
+  --sidebar-primary: oklch(0.68 0.14 48);
+  --sidebar-primary-foreground: oklch(0.15 0.02 48);
   --sidebar-accent: oklch(0.24 0 0);
   --sidebar-accent-foreground: oklch(0.97 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.78 0.15 75 / 0.5);
+  --sidebar-ring: oklch(0.68 0.14 48 / 0.5);
   --chart-background: oklch(0.12 0 0);
   --chart-foreground: oklch(0.6 0 0);
   --chart-foreground-muted: oklch(0.55 0.01 260);
-  --chart-crosshair: oklch(0.78 0.15 75);
+  --chart-crosshair: oklch(0.68 0.14 48);
   --chart-grid: oklch(0.26 0 0);
   --chart-brush-border: var(--chart-grid);
   --chart-marker-background: oklch(0.24 0.01 260);
   --chart-marker-border: oklch(0.4 0.01 260);
   --chart-marker-foreground: oklch(0.9 0 0);
   --chart-label: oklch(0.75 0.01 260);
-  --chart-scale-01: oklch(0.28 0.03 75);
-  --chart-scale-02: oklch(0.4 0.06 75);
-  --chart-scale-03: oklch(0.52 0.09 75);
-  --chart-scale-04: oklch(0.64 0.12 75);
-  --chart-scale-05: oklch(0.78 0.15 75);
+  --chart-scale-01: oklch(0.28 0.03 48);
+  --chart-scale-02: oklch(0.4 0.06 48);
+  --chart-scale-03: oklch(0.52 0.09 48);
+  --chart-scale-04: oklch(0.6 0.12 48);
+  --chart-scale-05: oklch(0.68 0.14 48);
   --chart-scale-pattern-color: oklch(0.145 0 0);
+
+  /* Distinct "in progress" tone for loading states — kept separate from
+     the amber brand accent so "processing" and "money recovered" read as
+     visually different states, not the same color doing double duty. */
+  --processing: oklch(0.68 0.17 280);
+  --processing-foreground: oklch(0.97 0 0);
 }
 
 @layer base {

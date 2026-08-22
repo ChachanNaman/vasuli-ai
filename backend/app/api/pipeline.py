@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -137,10 +138,22 @@ def process_event(event_dict: dict) -> dict:
     return write_decision(record)
 
 
+# Spacing between LLM calls. Groq's free tier is ~8000 tokens/minute and a
+# diagnosis call uses roughly 1500-2000 tokens, so back-to-back calls burn
+# through that budget in 4-5 requests and the rest of the batch falls back
+# to Gemini (or, if that's also saturated, to an honest "both providers
+# failed" human-review routing). This delay doesn't eliminate rate limiting
+# for large batches, but it meaningfully reduces how often it happens for
+# typical demo-sized batches.
+LLM_CALL_SPACING_SECONDS = 2.5
+
+
 def run_batch(n: int = 20, seed: Optional[int] = None) -> list[dict]:
     events = generate_batch(n, seed=seed)
     decisions = []
-    for event in events:
+    for i, event in enumerate(events):
+        if i > 0:
+            time.sleep(LLM_CALL_SPACING_SECONDS)
         row = _event_to_row(event)
         write_event(row)
         decisions.append(process_event(row["payload"]))
