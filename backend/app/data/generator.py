@@ -16,7 +16,6 @@ from __future__ import annotations
 import argparse
 import json
 import random
-import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -26,6 +25,18 @@ from app.data.schema import (
     FailureReasonCode,
     RevenueEvent,
 )
+
+
+def _random_hex(n_chars: int) -> str:
+    """A hex ID drawn from the seeded `random` module rather than
+    `uuid.uuid4()`. uuid4() reads from the OS's CSPRNG and completely
+    ignores `random.seed()` — using it here would make `generate_batch(n,
+    seed=42)` produce a different set of event/customer IDs on every
+    invocation despite the fixed seed, silently breaking reproducibility
+    for anything that seeds or keys off those IDs (the evaluation
+    harness's common-random-numbers design, app/eval/policies.py, does
+    exactly that)."""
+    return f"{random.getrandbits(n_chars * 4):0{n_chars}x}"
 
 FIRST_NAMES = [
     "Aarav", "Vivaan", "Aditya", "Vihaan", "Arjun", "Sai", "Reyansh", "Krishna",
@@ -48,6 +59,12 @@ PLANS = ["Starter Monthly", "Pro Monthly", "Pro Annual", "Business Monthly", "Bu
 
 MERCHANT_ID = "merchant_test_9f31a2"
 
+# Once a payment is disputed/charged back, collection action should stop
+# pending resolution (ENHANCEMENTS.md §2.2 dispute-freeze rule) — a small,
+# explicit rate so the demo reliably produces a few dispute-frozen cases per
+# batch without dominating it.
+DISPUTE_RATE = 0.04
+
 
 def _name() -> str:
     return f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}"
@@ -57,7 +74,7 @@ def _customer(opt_out_rate: float = 0.08) -> CustomerContext:
     successful = max(0, int(random.gauss(14, 10)))
     failed = max(0, int(random.gauss(1.5, 1.8)))
     return CustomerContext(
-        customer_id=f"cust_{uuid.uuid4().hex[:10]}",
+        customer_id=f"cust_{_random_hex(10)}",
         name=_name(),
         past_successful_payments=successful,
         past_failed_payments=failed,
@@ -101,7 +118,7 @@ def gen_payment_failed() -> RevenueEvent:
     reason = _weighted_failure_reason()
     method = random.choice(PAYMENT_METHODS)
     return RevenueEvent(
-        event_id=f"evt_{uuid.uuid4().hex[:12]}",
+        event_id=f"evt_{_random_hex(12)}",
         event_type=EventType.PAYMENT_FAILED,
         timestamp=_ts(7),
         merchant_id=MERCHANT_ID,
@@ -112,6 +129,7 @@ def gen_payment_failed() -> RevenueEvent:
         payment_method=method,
         bank_name=random.choice(BANKS) if method in ("upi", "netbanking", "debit_card") else None,
         attempt_number=random.choices([1, 2, 3], weights=[0.7, 0.22, 0.08])[0],
+        dispute_opened=random.random() < DISPUTE_RATE,
     )
 
 
@@ -131,7 +149,7 @@ def gen_subscription_failed() -> RevenueEvent:
         FailureReasonCode.MANDATE_REVOKED: "revoked",
     }.get(reason, "active")
     return RevenueEvent(
-        event_id=f"evt_{uuid.uuid4().hex[:12]}",
+        event_id=f"evt_{_random_hex(12)}",
         event_type=EventType.SUBSCRIPTION_CHARGE_FAILED,
         timestamp=_ts(10),
         merchant_id=MERCHANT_ID,
@@ -139,12 +157,13 @@ def gen_subscription_failed() -> RevenueEvent:
         currency="INR",
         customer=_customer(),
         failure_reason_code=reason,
-        subscription_id=f"sub_{uuid.uuid4().hex[:10]}",
-        mandate_id=f"mandate_{uuid.uuid4().hex[:10]}",
+        subscription_id=f"sub_{_random_hex(10)}",
+        mandate_id=f"mandate_{_random_hex(10)}",
         mandate_status=mandate_status,
         plan_name=random.choice(PLANS),
         billing_cycle=random.choice(["monthly", "annual"]),
         attempt_number=random.choices([1, 2, 3, 4], weights=[0.55, 0.25, 0.13, 0.07])[0],
+        dispute_opened=random.random() < DISPUTE_RATE,
     )
 
 
@@ -154,7 +173,7 @@ def gen_checkout_abandoned() -> RevenueEvent:
         weights=[0.3, 0.2, 0.25, 0.25],
     )[0]
     return RevenueEvent(
-        event_id=f"evt_{uuid.uuid4().hex[:12]}",
+        event_id=f"evt_{_random_hex(12)}",
         event_type=EventType.CHECKOUT_ABANDONED,
         timestamp=_ts(3),
         merchant_id=MERCHANT_ID,
@@ -175,14 +194,14 @@ def gen_invoice_overdue() -> RevenueEvent:
         weights=[0.55, 0.3, 0.15],
     )[0]
     return RevenueEvent(
-        event_id=f"evt_{uuid.uuid4().hex[:12]}",
+        event_id=f"evt_{_random_hex(12)}",
         event_type=EventType.INVOICE_OVERDUE,
         timestamp=_ts(days_overdue),
         merchant_id=MERCHANT_ID,
         amount=round(random.uniform(5000, 350000), 2),
         currency="INR",
         customer=_customer(opt_out_rate=0.03),
-        invoice_id=f"inv_{uuid.uuid4().hex[:10]}",
+        invoice_id=f"inv_{_random_hex(10)}",
         days_overdue=days_overdue,
         business_customer_name=random.choice(BUSINESS_NAMES),
         payment_reliability_score=round(random.betavariate(5, 2), 2),

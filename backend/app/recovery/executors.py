@@ -13,8 +13,39 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
+from app.guardrails.rules import DLT_APPROVED_TEMPLATES
 from app.recovery import outcome_model
 from app.recovery.razorpay_client import create_payment_link
+
+
+def _fill_dlt_template(action_type: str, event: dict, **extra: object) -> str:
+    """Format a fixed, pre-registered DLT template rather than sending the
+    LLM's freeform draft directly (TRAI DLT compliance, ENHANCEMENTS.md
+    §2.2 — guardrails.check_dlt_template_compliance is what asserts this
+    template set exists; this is where it's actually used). Picks the
+    customer's language preference where a matching template exists,
+    otherwise the first template in the set."""
+    templates = DLT_APPROVED_TEMPLATES.get(action_type)
+    if not templates:
+        return ""
+
+    customer = event.get("customer", {})
+    language_pref = customer.get("language_pref", "english")
+    template = templates[1] if (language_pref == "hinglish" and len(templates) > 1) else templates[0]
+
+    fields = {
+        "name": customer.get("name", "Customer"),
+        "amount": f"{event.get('amount', 0):,.2f}",
+        "link": "<generated at send time>",
+        "invoice_id": event.get("invoice_id", ""),
+        "days_overdue": event.get("days_overdue", ""),
+        "plan_name": event.get("plan_name", ""),
+    }
+    fields.update(extra)
+    try:
+        return template.format(**fields)
+    except KeyError:
+        return template
 
 
 @dataclass
@@ -72,10 +103,11 @@ def _execute_send_nudge(event: dict) -> ExecutionResult:
     draw = outcome_model.send_nudge_outcome(channel, minutes_since_abandon)
     amount = event.get("amount") or event.get("cart_value") or 0.0
     amount_recovered = amount if draw.recovered else 0.0
+    message = _fill_dlt_template("send_nudge", event)
     return ExecutionResult(
         recovered=draw.recovered,
         amount_recovered=amount_recovered,
-        notes=draw.notes,
+        notes=f"{draw.notes} | sent (DLT template): {message}",
         razorpay_payment_link=None,
         is_live_integration=False,
     )
@@ -86,10 +118,11 @@ def _execute_escalate_b2b_chase(event: dict) -> ExecutionResult:
         event.get("payment_reliability_score"), event.get("days_overdue")
     )
     amount_recovered = event["amount"] if draw.recovered else 0.0
+    message = _fill_dlt_template("escalate_b2b_chase", event)
     return ExecutionResult(
         recovered=draw.recovered,
         amount_recovered=amount_recovered,
-        notes=draw.notes,
+        notes=f"{draw.notes} | sent (DLT template): {message}",
         razorpay_payment_link=None,
         is_live_integration=False,
     )
@@ -98,10 +131,11 @@ def _execute_escalate_b2b_chase(event: dict) -> ExecutionResult:
 def _execute_initiate_mandate_reauth(event: dict) -> ExecutionResult:
     draw = outcome_model.initiate_mandate_reauth_outcome()
     amount_recovered = event["amount"] if draw.recovered else 0.0
+    message = _fill_dlt_template("initiate_mandate_reauth", event)
     return ExecutionResult(
         recovered=draw.recovered,
         amount_recovered=amount_recovered,
-        notes=draw.notes,
+        notes=f"{draw.notes} | sent (DLT template): {message}",
         razorpay_payment_link=None,
         is_live_integration=False,
     )

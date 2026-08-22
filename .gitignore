@@ -18,3 +18,8 @@ out/
 
 # OS
 .DS_Store
+
+# Local editor/agent tooling (not project source)
+.agents/
+.claude/
+skills-lock.json

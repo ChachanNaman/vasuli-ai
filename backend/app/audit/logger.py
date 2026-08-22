@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
+from app.audit import hash_chain
 from app.audit.supabase_client import get_supabase
 from app.guardrails.rules import GuardrailResult
 
@@ -64,16 +65,39 @@ def write_event(event_row: dict) -> None:
 
 
 def write_decision(record: DecisionRecord) -> dict:
+    """Write one decision row, then chain it (ENHANCEMENTS.md §2.4): insert
+    first so Postgres assigns decision_id/chain_seq/timestamp formatting,
+    then hash *that* returned representation and write the hash back. See
+    hash_chain.py's module docstring for why this is two round-trips
+    instead of one."""
     supabase = get_supabase()
-    response = supabase.table("decisions").insert(record.to_row()).execute()
+    insert_response = supabase.table("decisions").insert(record.to_row()).execute()
+    inserted = insert_response.data[0] if insert_response.data else record.to_row()
+
+    previous_hash = hash_chain.get_last_hash()
+    record_hash = hash_chain.compute_hash(previous_hash, inserted)
+
+    decision_id = inserted.get("decision_id")
+    final = {**inserted, "record_hash": record_hash}
+    if decision_id:
+        update_response = (
+            supabase.table("decisions")
+            .update({"record_hash": record_hash})
+            .eq("decision_id", decision_id)
+            .execute()
+        )
+        if update_response.data:
+            final = update_response.data[0]
+
     logger.info(
-        "decision written: event=%s action=%s status=%s recovered=%s",
+        "decision written: event=%s action=%s status=%s recovered=%s hash=%s",
         record.event_id,
         record.action_type,
         record.guardrail_result.action_status,
         record.recovered,
+        record_hash[:12],
     )
-    return response.data[0] if response.data else record.to_row()
+    return final
 
 
 def write_llm_fallback_event(event_id: str, reason: str, from_provider: str) -> None:

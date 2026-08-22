@@ -84,6 +84,14 @@ class RevenueEvent:
     business_customer_name: Optional[str] = None
     payment_reliability_score: Optional[float] = None  # 0-1, historical
 
+    # Shared, any event type: once a payment is disputed/charged back,
+    # collection action on it should stop pending resolution
+    # (ENHANCEMENTS.md §2.2, "dispute freeze"). Only payment_failed and
+    # subscription_charge_failed events can plausibly carry this — a
+    # checkout that was never paid, or an invoice that was never charged
+    # through Razorpay, has nothing to dispute.
+    dispute_opened: bool = False
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["event_type"] = self.event_type.value

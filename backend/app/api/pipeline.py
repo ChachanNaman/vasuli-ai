@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from app.agents.diagnosis_agent import DiagnosisValidationError, diagnose
+from app.agents.heuristic_agent import diagnose_heuristic
 from app.agents.llm_client import LLMClientError
 from app.audit.logger import DecisionRecord, write_decision, write_event, write_llm_fallback_event
 from app.audit.supabase_client import get_supabase
@@ -67,39 +68,40 @@ def process_event(event_dict: dict) -> dict:
     customer_id = event_dict["customer"]["customer_id"]
     past_decisions = _fetch_past_decisions(customer_id)
 
-    fallback_reason: Optional[str] = None
-
     def on_fallback(reason: str, from_provider: str) -> None:
-        nonlocal fallback_reason
-        fallback_reason = reason
         write_llm_fallback_event(event_dict["event_id"], reason, from_provider)
 
     try:
         diagnosis = diagnose(event_dict, on_fallback=on_fallback)
-        proposed_action = diagnosis.recommended_action
     except (DiagnosisValidationError, LLMClientError) as e:
-        logger.error("diagnosis failed for %s, flagging for human review: %s", event_dict["event_id"], e)
-        proposed_action = "flag_for_human_review"
-        diagnosis = None
+        # Three-way degradation (ENHANCEMENTS.md §2.5): Groq -> Gemini ->
+        # heuristic. Only if *both* LLM providers fail do we drop to the
+        # deterministic rule-based agent — never a hard failure, never a
+        # silent no-op.
+        logger.warning(
+            "both LLM providers failed for %s, falling back to heuristic agent: %s",
+            event_dict["event_id"],
+            e,
+        )
+        write_llm_fallback_event(event_dict["event_id"], str(e), "gemini")
+        diagnosis = diagnose_heuristic(event_dict)
 
-    guardrail_result = run_guardrails(event_dict, proposed_action, past_decisions)
+    root_cause = diagnosis.root_cause
+    confidence = diagnosis.confidence
+    reasoning_text = diagnosis.reasoning
+    action_params = diagnosis.action_params
+    customer_message = diagnosis.customer_message
+    llm_provider = diagnosis.llm_provider
+    llm_fallback_used = diagnosis.llm_fallback_used
+    proposed_action = diagnosis.recommended_action
 
-    if diagnosis is None:
-        root_cause = event_dict.get("failure_reason_code") or "unknown"
-        confidence = 0.0
-        reasoning_text = "Diagnosis agent unavailable (both LLM providers failed): routed to human review."
-        action_params: dict = {}
-        customer_message = None
-        llm_provider = None
-        llm_fallback_used = fallback_reason is not None
-    else:
-        root_cause = diagnosis.root_cause
-        confidence = diagnosis.confidence
-        reasoning_text = diagnosis.reasoning
-        action_params = diagnosis.action_params
-        customer_message = diagnosis.customer_message
-        llm_provider = diagnosis.llm_provider
-        llm_fallback_used = diagnosis.llm_fallback_used
+    guardrail_result = run_guardrails(
+        event_dict,
+        proposed_action,
+        past_decisions,
+        root_cause=root_cause,
+        action_params=action_params,
+    )
 
     action_type = proposed_action
 

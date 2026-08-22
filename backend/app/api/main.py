@@ -15,6 +15,8 @@ from pydantic import BaseModel
 from app.api.pipeline import run_batch
 from app.audit.metrics import get_exceptions, get_metrics_by_root_cause, get_metrics_overview
 from app.audit.supabase_client import get_supabase
+from app.audit.verify import verify_chain
+from app.eval.run_comparison import build_report
 
 logging.basicConfig(level=logging.INFO)
 
@@ -84,3 +86,21 @@ def api_get_metrics():
         "by_root_cause": get_metrics_by_root_cause(),
         "exceptions": get_exceptions(),
     }
+
+
+@app.get("/api/audit/verify")
+def api_audit_verify():
+    """ENHANCEMENTS.md §2.4/§2.5 dashboard indicator: walks the hash chain
+    and reports whether every decision on record is provably unaltered."""
+    ok, records_checked, error = verify_chain()
+    return {"ok": ok, "records_checked": records_checked, "error": error}
+
+
+@app.get("/api/eval/comparison")
+def api_eval_comparison(
+    cases: int = Query(300, ge=10, le=2000), seed: int = Query(42)
+):
+    """ENHANCEMENTS.md §2.1: the baseline-comparison evaluation harness,
+    on demand. Pure Python, no LLM/DB calls, so this is fast even at the
+    upper end of the case range (500 cases runs in well under a second)."""
+    return build_report(n_cases=cases, seed=seed)
