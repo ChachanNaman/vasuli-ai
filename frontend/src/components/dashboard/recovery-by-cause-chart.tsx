@@ -8,9 +8,20 @@ import { ChartTooltip } from "@/components/charts/tooltip/chart-tooltip";
 import type { MetricsByRootCause } from "@/lib/types";
 import { formatRootCause } from "@/lib/format";
 
+const AXIS_LABEL_MAX_CHARS = 14;
+
+function shortenForAxis(label: string): string {
+  return label.length > AXIS_LABEL_MAX_CHARS
+    ? `${label.slice(0, AXIS_LABEL_MAX_CHARS - 1)}…`
+    : label;
+}
+
 export function RecoveryByCauseChart({ data }: { data: MetricsByRootCause[] }) {
+  // Root causes can run long ("Insufficient Funds", "Daily Limit Exceeded")
+  // and up to 11 distinct values appear in one batch — shorten for the axis
+  // so rotated labels always fit regardless of exact margin math.
   const chartData: (Record<string, unknown> & { name: string; recovered: number })[] = data.map((d) => ({
-    name: formatRootCause(d.root_cause),
+    name: shortenForAxis(formatRootCause(d.root_cause)),
     recovered: d.amount_recovered,
   }));
 
@@ -23,9 +34,9 @@ export function RecoveryByCauseChart({ data }: { data: MetricsByRootCause[] }) {
   }
 
   return (
-    <BarChart data={chartData} xDataKey="name" status="ready" aspectRatio="3 / 1">
+    <BarChart data={chartData} xDataKey="name" status="ready" aspectRatio="2.4 / 1">
       <Grid horizontal numTicksRows={4} />
-      <BarXAxis />
+      <BarXAxis maxLabels={6} />
       <Bar dataKey="recovered" fill="var(--chart-1)" />
       <ChartTooltip />
     </BarChart>
