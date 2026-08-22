@@ -225,8 +225,6 @@ output.
 
 ```
 vasuli-ai/
-├── PRD_1.md
-├── ENHANCEMENTS.md          # competitive-gap addendum — supersedes PRD_1.md §7, §14
 ├── README.md
 ├── docs/
 │   ├── architecture.md      # full system walkthrough, data model, API surface

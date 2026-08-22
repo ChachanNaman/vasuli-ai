@@ -1,9 +1,5 @@
 # Vasuli — Architecture
 
-This document reflects the system as extended by [`ENHANCEMENTS.md`](../ENHANCEMENTS.md),
-which supersedes `PRD_1.md` §7 (guardrail table) and §14 (timeline) where
-they differ.
-
 ## System diagram
 
 ```

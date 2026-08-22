@@ -23,3 +23,8 @@ out/
 .agents/
 .claude/
 skills-lock.json
+frontend/AGENTS.md
+frontend/CLAUDE.md
+
+# Regenerable sample data — run `python -m app.data.generator` to recreate
+backend/app/data/events.json
