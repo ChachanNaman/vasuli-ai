@@ -28,7 +28,7 @@ function StackCard({ children, index, className }: StackCardProps) {
   return (
     <div
       ref={ref}
-      className="sticky top-16 flex h-[58vh] items-center justify-center"
+      className="sticky top-20 flex h-[58vh] items-start justify-center pt-6"
       style={{ zIndex: index + 1 }}
     >
       <motion.div style={{ scale, opacity }} className={cn("w-full", className)}>

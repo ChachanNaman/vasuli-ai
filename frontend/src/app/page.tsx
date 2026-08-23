@@ -54,18 +54,46 @@ const recoveryActions = [
   {
     image: "/illustrations/gallery-smart-retry.jpg",
     label: "Smart Retry",
+    description: [
+      "Real Razorpay test-mode retry link",
+      "Capped at 3 attempts per payment",
+      "Rate-limited to 1 per 30 min",
+      "Blocked instantly if a dispute opens",
+      "Economic rule vetoes low-value retries",
+    ],
   },
   {
     image: "/illustrations/gallery-payment-link.jpg",
     label: "Payment Link",
+    description: [
+      "Fresh Razorpay test-mode link",
+      "For abandoned checkouts + invoices",
+      "Customer pays on their own time",
+      "No repeat contact within 4 hours",
+      "Max 2 touches per customer per day",
+    ],
   },
   {
     image: "/illustrations/gallery-send-nudge.jpg",
     label: "Send Nudge",
+    description: [
+      "Pre-registered DLT template only",
+      "08:00–19:00 IST contact window",
+      "Respects the daily contact cap",
+      "Skipped entirely if opted out",
+      "Never sends freeform LLM text",
+    ],
   },
   {
     image: "/illustrations/gallery-b2b-chase.jpg",
     label: "B2B Chase",
+    description: [
+      "Tiered by reliability score",
+      "Firmer tone for overdue invoices",
+      "Never auto-escalates above ₹1L",
+      "Flagged for human review above cap",
+      "Full reasoning logged to audit trail",
+    ],
   },
 ];
 
@@ -78,9 +106,9 @@ export default function LandingPage() {
         <div className="pointer-events-auto">
           <LineSidebar
             items={SECTIONS}
-            accentColor="oklch(0.55 0.21 262)"
-            textColor="oklch(0.48 0.02 262)"
-            markerColor="oklch(0.85 0.01 262)"
+            accentColor="var(--primary)"
+            textColor="var(--foreground)"
+            markerColor="var(--muted-foreground)"
             showIndex
             showMarker
             proximityRadius={90}
@@ -136,7 +164,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.9 }}
-              className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground md:text-lg"
+              className="mt-5 max-w-lg text-base leading-relaxed text-foreground/80 md:text-lg"
             >
               It watches failed payments, abandoned checkouts, failed mandates,
               and overdue invoices — diagnoses why each one is losing money,
@@ -164,7 +192,7 @@ export default function LandingPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 1.2 }}
-              className="mt-6 max-w-md text-xs text-muted-foreground"
+              className="mt-6 max-w-md text-xs text-foreground/80"
             >
               The LLM never touches money directly — a deterministic guardrail
               engine and recovery executors are the only things allowed to act.
@@ -177,7 +205,7 @@ export default function LandingPage() {
             </div>
             <ScrollZoom scaleRange={[0.94, 1.05]}>
               <motion.div
-                className="relative"
+                className="relative dark:grayscale dark:contrast-125"
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
@@ -191,8 +219,8 @@ export default function LandingPage() {
 
       {/* Scroll transition into the next section — frame expands to full-bleed */}
       <ScrollExpand
-        src="/illustrations/hero-scrollexpand.jpg"
-        alt="Razorpay payment infrastructure"
+        src="/illustrations/razorpay-wordmark.jpg"
+        alt="Razorpay"
         title="Diagnose. Decide. Recover."
         scrollHint="Scroll to see how"
         useWindowScroll
@@ -204,12 +232,13 @@ export default function LandingPage() {
         scrollDistance={1}
         holdDistance={0.15}
         smoothing={0.08}
-        overlayScrim={0.55}
+        overlayScrim={0.65}
+        mediaClassName="opacity-[0.22] blur-lg grayscale"
       />
 
       {/* Architecture — sticky stack */}
-      <section id="how-it-works" className="relative mx-auto max-w-4xl px-6 pb-20">
-        <ScrollReveal className="mb-4 text-center">
+      <section id="how-it-works" className="relative mx-auto max-w-4xl px-6 pb-20 pt-20 md:pt-28">
+        <ScrollReveal className="mb-4 text-center" y={-56}>
           <p className="text-xs font-medium uppercase tracking-wide text-primary">
             How it works
           </p>
@@ -312,11 +341,11 @@ export default function LandingPage() {
       <section id="cta" className="relative overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="/illustrations/razorpay-cards-float.webp"
+            src="/illustrations/cta-growth.jpg"
             alt=""
             fill
             sizes="100vw"
-            className="object-cover opacity-70 blur-[1px]"
+            className="object-cover opacity-35 blur-[1px] dark:grayscale"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[oklch(0.2_0.05_262)] via-[oklch(0.25_0.09_262/0.9)] to-[oklch(0.3_0.1_262/0.75)]" />
         </div>
@@ -336,7 +365,7 @@ export default function LandingPage() {
         <img
           src="/illustrations/rocket-launch.gif"
           alt=""
-          className="pointer-events-none absolute bottom-0 left-8 hidden h-44 w-auto opacity-25 blur-[0.5px] md:block"
+          className="pointer-events-none absolute bottom-0 left-8 hidden h-44 w-auto opacity-25 blur-[0.5px] dark:grayscale md:block"
         />
       </section>
     </div>

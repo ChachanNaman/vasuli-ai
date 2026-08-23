@@ -28,3 +28,6 @@ frontend/CLAUDE.md
 
 # Regenerable sample data — run `python -m app.data.generator` to recreate
 backend/app/data/events.json
+
+# Internal use only — not for submission
+docs/demo-script.md

@@ -230,8 +230,7 @@ output.
 vasuli-ai/
 ├── README.md
 ├── docs/
-│   ├── architecture.md      # full system walkthrough, data model, API surface
-│   └── demo-script.md       # 5-minute pitch script mapped to the judging journey
+│   └── architecture.md      # full system walkthrough, data model, API surface
 ├── backend/
 │   └── app/
 │       ├── data/           # event schema + synthetic generator
@@ -247,8 +246,7 @@ vasuli-ai/
 ```
 
 See [`docs/architecture.md`](docs/architecture.md) for the full request-flow
-walkthrough and API reference, and [`docs/demo-script.md`](docs/demo-script.md)
-for the pitch-video script mapped to the judging journey.
+walkthrough and API reference.
 
 ## Setup
 

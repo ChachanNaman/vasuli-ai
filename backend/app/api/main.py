@@ -6,7 +6,16 @@ Run locally with: uvicorn app.api.main:app --reload
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Optional
+
+from dotenv import load_dotenv
+
+# Repo-root .env (backend/app/api/main.py -> backend/app/api -> backend/app -> backend -> repo root),
+# loaded before any app import so module-level `os.environ.get(...)` reads (e.g. llm_client's
+# GROQ_MODEL/GEMINI_MODEL) see it. No-op if the file doesn't exist — deployed environments (Render)
+# set real env vars directly instead of shipping a .env.
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware

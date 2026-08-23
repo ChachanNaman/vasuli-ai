@@ -158,7 +158,7 @@ export function ChatWidget() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setOpen((o) => !o)}
-          className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+          className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90 dark:grayscale"
           aria-label={open ? "Close assistant" : "Open assistant"}
         >
           <AnimatePresence mode="wait" initial={false}>

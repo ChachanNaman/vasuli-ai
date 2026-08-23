@@ -6,6 +6,7 @@ import './AccordionGallery.css';
 export interface AccordionGalleryItem {
   image: string;
   label?: string;
+  description?: string[];
   link?: string;
   alt?: string;
 }
@@ -262,12 +263,19 @@ const AccordionGallery = ({
                   }}
                 />
                 <span
-                  className="ag-panel__text"
+                  className="ag-panel__text-wrap"
                   ref={(el: HTMLElement | null) => {
                     textRefs.current[i] = el;
                   }}
                 >
-                  {item.label}
+                  <span className="ag-panel__text">{item.label}</span>
+                  {item.description && item.description.length > 0 && (
+                    <ul className="ag-panel__desc">
+                      {item.description.map((point) => (
+                        <li key={point}>{point}</li>
+                      ))}
+                    </ul>
+                  )}
                 </span>
               </span>
             )}

@@ -43,6 +43,7 @@ export interface ScrollExpandProps {
   enabled?: boolean;
   children?: ReactNode;
   className?: string;
+  mediaClassName?: string;
   style?: CSSProperties;
   [key: string]: unknown;
 }
@@ -67,6 +68,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
   enabled = true,
   children,
   className = '',
+  mediaClassName = '',
   style,
   ...rest
 }: ScrollExpandProps) => {
@@ -229,7 +231,7 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
     mediaType === 'video' ? (
       <video
         ref={mediaRef}
-        className="scroll-expand__media"
+        className={`scroll-expand__media ${mediaClassName}`.trim()}
         src={src}
         poster={poster}
         autoPlay
@@ -238,7 +240,13 @@ const ScrollExpand: React.FC<ScrollExpandProps> = ({
         playsInline
       />
     ) : (
-      <img ref={mediaRef} className="scroll-expand__media" src={src} alt={alt} draggable={false} />
+      <img
+        ref={mediaRef}
+        className={`scroll-expand__media ${mediaClassName}`.trim()}
+        src={src}
+        alt={alt}
+        draggable={false}
+      />
     );
 
   return (
