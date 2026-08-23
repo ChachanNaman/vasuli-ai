@@ -85,6 +85,9 @@ a stub agent that recommends the single worst legal action for every case
 across 3 seeds (240 cases total). 100% blocked, zero disallowed actions
 reach the executor layer.
 
+_Re-run 2026-08-23: all 4 tests in that file still pass, 240/240 worst-case
+actions still blocked._
+
 ## The diagnosis agent — three-way degradation
 
 Given one event's full context, the diagnosis layer does exactly three
