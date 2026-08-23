@@ -309,6 +309,9 @@ badge) are built and wired end-to-end.
 pitch video — both need a live decision on hosting/voice rather than
 further code changes.
 
+_Last verified 2026-08-23: `pytest --collect-only` still collects exactly
+110 tests, matching the count claimed above._
+
 ## Known limitations
 
 - Render's free tier cold-starts after ~15 minutes idle.
