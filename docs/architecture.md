@@ -281,6 +281,9 @@ during development and noticing the headline numbers didn't match.
 separate CLI invocations with the same seed now produce byte-identical
 reports.
 
+_Re-checked 2026-08-23: two fresh `--cases 50 --seed 42` runs still produce
+byte-identical output — the fix holds._
+
 Both failure stories share a pattern worth naming: both were caught by the
 system's own tooling (the audit trail; a repeated harness run) rather than
 by inspection, and both fixes are in deterministic code, not a prompt or a
