@@ -44,6 +44,7 @@ flowchart LR
 |---|---|
 | ![Live agent feed](docs/images/live-feed.jpg) **Live agent feed** — every decision streams in as it happens, badged by source (🤖 AI-proposed / ⚙️ guardrail-blocked / 📐 heuristic-fallback) | ![Full reasoning trace](docs/images/drill-down.jpg) **Full reasoning trace** — root cause, confidence, every guardrail check pass/fail, action, outcome |
 | ![Counterfactual sandbox](docs/images/counterfactual.jpg) **Counterfactual sandbox** — pick a *different* action and watch the real guardrail engine judge it live (here: caught a repeat retry that would've violated the 30-minute rate limit) | ![vs. Baseline](docs/images/vs-baseline.jpg) **vs. Baseline** — the same batch run through 4 policies with common random numbers, headline number is *incremental* recovery, plus a live hash-chain integrity badge |
+| ![Seed stability check](docs/images/stability-check.jpg) **Seed stability check** — the same comparison re-run across 20 seeds; rupee totals flagged noisy, rates and counts confirmed stable, computed and labeled automatically | ![LLM vs. heuristic agreement](docs/images/diagnosis-agreement.jpg) **LLM vs. heuristic agreement** — a real run: 7/15 evaluated (8 rate-limited), 42.9% action agreement, 100% root-cause agreement — shown honestly, not cherry-picked |
 
 Full walkthrough with narration: **[BLOG.md](BLOG.md)**.
 
@@ -65,7 +66,7 @@ slide:
 
 ## What makes this different from a typical hackathon agent
 
-Six things beyond the baseline, each a real feature, not a README claim:
+Nine things beyond the baseline, each a real feature, not a README claim:
 
 - **Decision-source badges** — every single decision, everywhere it renders, is labeled 🤖 AI-proposed / ⚙️ guardrail-blocked / 📐 heuristic-fallback, so the "LLM never touches money" claim is visible by scrolling, not something you have to take on faith.
 - **Live pause/resume kill switch** — a batch run can be paused *between* events mid-run, with a visible "Paused — N of M processed" state and nothing silently dropped.
@@ -73,6 +74,9 @@ Six things beyond the baseline, each a real feature, not a README claim:
 - **Per-customer recovery journey** — click any customer and see their whole story as a timeline, not a flat table row.
 - **Counterfactual override sandbox** — try a different action than the one the agent picked, live, against the real guardrail engine — screenshot above.
 - **Fairness/consistency check** — a statistical check comparing action-assignment rates across language, channel, and tenure segments, reported honestly either way. None of the comparable projects in this track check for this at all.
+- **Promise-to-pay guardrail** — a logged customer commitment defers B2B invoice escalation, but a *broken* promise explicitly re-allows it rather than pausing forever — asymmetric, not a blunt mute button.
+- **Seed-stability check** — the vs. Baseline comparison re-run across 20 seeds, auto-flagging any metric whose seed-to-seed swing exceeds a stated threshold instead of presenting one point estimate as gospel.
+- **LLM-vs-heuristic agreement** — a live, on-demand check of how often the real LLM's judgment matches the zero-AI fallback's, answering "how much would we actually lose if both providers went down" with data instead of a guess.
 
 ## Architecture
 

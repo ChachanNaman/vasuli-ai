@@ -175,6 +175,56 @@ not just true:
 - **The counterfactual sandbox**, above.
 - **A fairness/consistency check** comparing whether the agent treats customers differently by language preference, channel, or tenure — reported honestly either way, "no evidence of differential treatment" if that's what the data shows, the honest opposite if not.
 
+## Three more, built after reading what everyone else in this track shipped
+
+Late in the build, I read through 11 other public repos in the same
+track. Two were genuinely strong — one had a randomized-holdout eval with
+confidence intervals, the other had a hash-chained ledger with a
+`replay()` function. Most of the rest were either off-brief, unfinished
+stubs, or made one very avoidable mistake: a "diagnosis accuracy" eval
+that would score 100% forever without measuring anything, because it
+compared a deterministic fallback against the exact label it was built to
+echo. Three things came out of that read:
+
+**A 13th guardrail rule: promise-to-pay.** If a B2B customer already told
+the merchant "I'll pay by Friday," chasing them again before Friday
+undermines the trust the chase sequence exists to protect — so the rule
+defers. But the moment that promised date passes with no payment, the
+rule flips and explicitly *allows* escalation again, rather than staying
+quiet forever. Without that second half, a customer could stall
+indefinitely by promising once and never paying — the asymmetry is the
+entire point.
+
+**A seed-stability check**, because a single reproducible number isn't
+the same as a *representative* one. It re-runs the full 4-policy
+comparison across 20 independent seeds and automatically flags any
+metric whose seed-to-seed swing exceeds a stated 25% threshold — live on
+the dashboard, not a paragraph someone has to go looking for.
+
+![Seed stability check](docs/images/stability-check.jpg)
+
+*A real run: rupee totals for `fixed_dunning` and `max_pressure` swing
+27% seed to seed — flagged "noisy" automatically — while counts and rates
+stay well within the stable band. The honest asymmetry is the finding.*
+
+**An LLM-vs-heuristic agreement check** — deliberately *not* "diagnosis
+accuracy," because that metric is meaningless on this codebase: the
+heuristic fallback intentionally just echoes the event's own failure
+code rather than re-deriving it, so scoring it against that same code
+would read 100% forever and prove nothing. The real question is how
+often the *live* LLM's independent judgment agrees with the deterministic
+fallback — which directly answers "if both providers went down right
+now, how much would actually be lost?"
+
+![LLM vs. heuristic agreement](docs/images/diagnosis-agreement.jpg)
+
+*A real run, reported as-is: 7 of 15 cases evaluated (8 hit a live rate
+limit — itself an honest artifact of a free-tier API, not hidden), 42.9%
+action agreement, 100% root-cause agreement. Genuine disagreements
+showed up (the LLM picked Smart Retry where the heuristic flagged for
+human review) — exactly the kind of finding this check exists to surface,
+not a number tuned to look good.*
+
 ## What's next
 
 The pipeline runs end-to-end against real infrastructure — real Razorpay
