@@ -57,3 +57,33 @@ export function formatActionType(action: string): string {
 export function formatRootCause(cause: string): string {
   return formatActionType(cause);
 }
+
+// FEATURES.md #1 — decision-source badge. Derived purely from data already
+// on the decision row (action_status, llm_provider); no new fields.
+// llm_provider === "heuristic" is the only signal that both LLM providers
+// failed — llm_fallback_used alone is *not* that signal, since it's also
+// true for a plain Groq -> Gemini fallback (still an LLM call). Priority:
+// a heuristic-agent call is the most notable provenance fact about a
+// decision regardless of guardrail outcome, so it wins over a
+// guardrail-blocked label if both are true (heuristic proposed something
+// that also got blocked).
+export type DecisionSource = "ai_proposed" | "guardrail_blocked" | "heuristic_fallback";
+
+export interface DecisionSourceInfo {
+  source: DecisionSource;
+  icon: string;
+  label: string;
+}
+
+export function decisionSource(decision: {
+  action_status: string;
+  llm_provider: string | null;
+}): DecisionSourceInfo {
+  if (decision.llm_provider === "heuristic") {
+    return { source: "heuristic_fallback", icon: "📐", label: "Heuristic fallback" };
+  }
+  if (decision.action_status !== "executed") {
+    return { source: "guardrail_blocked", icon: "⚙️", label: "Guardrail blocked" };
+  }
+  return { source: "ai_proposed", icon: "🤖", label: "AI-proposed" };
+}

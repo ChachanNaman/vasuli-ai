@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from datetime import datetime, timezone
 from typing import Optional
@@ -12,6 +13,7 @@ from typing import Optional
 from app.agents.diagnosis_agent import DiagnosisValidationError, diagnose
 from app.agents.heuristic_agent import diagnose_heuristic
 from app.agents.llm_client import LLMClientError
+from app.api import batch_state
 from app.audit.logger import DecisionRecord, write_decision, write_event, write_llm_fallback_event
 from app.audit.supabase_client import get_supabase
 from app.data.generator import generate_batch
@@ -144,19 +146,65 @@ def process_event(event_dict: dict) -> dict:
 # diagnosis call uses roughly 1500-2000 tokens, so back-to-back calls burn
 # through that budget in 4-5 requests and the rest of the batch falls back
 # to Gemini (or, if that's also saturated, to an honest "both providers
-# failed" human-review routing). This delay doesn't eliminate rate limiting
-# for large batches, but it meaningfully reduces how often it happens for
-# typical demo-sized batches.
-LLM_CALL_SPACING_SECONDS = 2.5
+# failed" human-review routing). Kept small rather than zero purely to
+# smooth out bursts — the three-way degradation (Groq -> Gemini ->
+# heuristic) is what actually absorbs rate limiting, not this delay, so
+# there's no correctness reason to make it large. A 12-event demo batch at
+# the old 2.5s spent 27.5s just sleeping, on top of real LLM latency.
+LLM_CALL_SPACING_SECONDS = 0.5
 
 
-def run_batch(n: int = 20, seed: Optional[int] = None) -> list[dict]:
+def run_batch(
+    n: int = 20, seed: Optional[int] = None, batch_id: Optional[str] = None
+) -> list[dict]:
+    """Generate `n` events and process them one at a time.
+
+    `batch_id` is optional and only used by `start_batch` below (the
+    pause/resume kill switch, FEATURES.md #2) — every existing caller that
+    doesn't pass it (including the synchronous tests) runs exactly as
+    before.
+    """
+    state = batch_state.get(batch_id) if batch_id else None
     events = generate_batch(n, seed=seed)
+    if state:
+        state.total = len(events)
+
     decisions = []
     for i, event in enumerate(events):
+        if state:
+            # Checked at an event boundary, before starting the next one —
+            # never mid-decision. An already-in-flight diagnose/guardrail/
+            # execute sequence always runs to completion.
+            batch_state.wait_if_paused(state)
         if i > 0:
             time.sleep(LLM_CALL_SPACING_SECONDS)
         row = _event_to_row(event)
         write_event(row)
-        decisions.append(process_event(row["payload"]))
+        decision = process_event(row["payload"])
+        decisions.append(decision)
+        if state:
+            state.decisions.append(decision)
+            state.processed = i + 1
+    if state:
+        state.status = "completed"
     return decisions
+
+
+def start_batch(n: int = 20, seed: Optional[int] = None) -> str:
+    """Kick off a batch run on a background thread and return its batch_id
+    immediately, so the pause/resume endpoints can act on it while it's
+    still in progress (FEATURES.md #2). FastAPI already runs sync route
+    handlers in a thread pool, so a separate pause/resume POST reaches this
+    thread's `batch_state` entry concurrently without extra plumbing."""
+    state = batch_state.create(n, seed)
+
+    def _worker() -> None:
+        try:
+            run_batch(n=n, seed=seed, batch_id=state.batch_id)
+        except Exception as exc:  # pragma: no cover - defensive, logged not swallowed
+            logger.exception("batch %s failed", state.batch_id)
+            state.status = "error"
+            state.error = str(exc)
+
+    threading.Thread(target=_worker, daemon=True).start()
+    return state.batch_id
