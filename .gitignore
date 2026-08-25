@@ -31,3 +31,6 @@ backend/app/data/events.json
 
 # Internal use only — not for submission
 docs/demo-script.md
+RECORDING_SCRIPT.md
+FEATURES.md
+docs/beginners-guide.md

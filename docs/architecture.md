@@ -2,43 +2,40 @@
 
 ## System diagram
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Frontend (Next.js)                       │
-│  Dashboard · Live Agent Feed · Event Drill-down · Exceptions ·  │
-│  vs. Baseline (incremental recovery + audit-integrity badge)    │
-│  hosted on Vercel                                                 │
-└───────────────┬───────────────────────────────▲──────────────────┘
-                │ REST (batch trigger, queries)  │ Supabase Realtime
-                ▼                                │ (live decision stream)
-┌─────────────────────────────────────────────────────────────────┐
-│                    Backend (Python, FastAPI)                     │
-│                                                                    │
-│  ┌───────────────┐  ┌──────────────────────┐  ┌────────────────┐ │
-│  │ Data Generator │→ │ Diagnosis Agent       │→ │ Guardrail       │ │
-│  │ (synthetic     │  │ Groq → Gemini →       │  │ Engine          │ │
-│  │  events)       │  │ heuristic (§2.5)      │  │ (12 rules,      │ │
-│  └───────────────┘  └──────────────────────┘  │  §2.2/§2.3)     │ │
-│                                                 └────────┬────────┘ │
-│                                                          ▼          │
-│  ┌──────────────────────┐   ┌───────────────────────────────────┐ │
-│  │ Recovery Executors     │←→│ Razorpay Test Mode API (real,     │ │
-│  │ (retry, payment link,  │   │ zero-cost payment links)         │ │
-│  │ nudge, B2B chase,      │   └───────────────────────────────────┘ │
-│  │ mandate re-auth sims)  │                                         │
-│  └───────────┬────────────┘                                         │
-│              ▼                                                      │
-│  ┌────────────────────────┐                                         │
-│  │ Audit Trail (hash-       │──────────► Supabase Postgres            │
-│  │ chained, §2.4) + Metrics │           (events, decisions, views)    │
-│  └────────────────────────┘                                         │
-│                                                                       │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │ Evaluation harness (app/eval/, §2.1) — do_nothing /          │    │
-│  │ fixed_dunning / vasuli / max_pressure, common random numbers  │    │
-│  └────────────────────────────────────────────────────────────┘    │
-│  hosted on Render (Web Service, free tier)                          │
-└───────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph FE["Frontend — Next.js (Vercel)"]
+        UI["Dashboard · Live Agent Feed · Drill-down\nExceptions · vs. Baseline · Customer Timeline"]
+    end
+
+    subgraph BE["Backend — FastAPI (Render)"]
+        GEN["Data Generator\n(synthetic loss events)"]
+        DIAG["Diagnosis Agent\nGroq → Gemini → heuristic"]
+        GUARD["Guardrail Engine\n12 deterministic rules\nNO LLM"]
+        EXEC["Recovery Executors\nretry · payment link · nudge\nB2B chase · mandate re-auth"]
+        AUDIT["Audit Trail\nhash-chained, tamper-evident"]
+        EVAL["Evaluation Harness\ndo_nothing / fixed_dunning /\nvasuli / max_pressure"]
+    end
+
+    RZP[("Razorpay\nTest Mode API")]
+    DB[("Supabase Postgres\nevents · decisions · views")]
+
+    UI -- "REST: run batch, pause/resume,\nquery decisions, counterfactual" --> BE
+    DB -. "Realtime: live decision stream" .-> UI
+
+    GEN --> DIAG
+    DIAG -- "proposes root cause + action" --> GUARD
+    GUARD -- "cleared only" --> EXEC
+    EXEC <--> RZP
+    EXEC --> AUDIT
+    GUARD -. "every check, pass or fail" .-> AUDIT
+    AUDIT --> DB
+    EVAL -.-> DB
+
+    style GUARD fill:#2563eb,color:#fff,stroke:#1e3a8a,stroke-width:2px
+    style DIAG fill:#eef2ff,stroke:#4338ca
+    style EXEC fill:#eef2ff,stroke:#4338ca
+    style AUDIT fill:#eef2ff,stroke:#4338ca
 ```
 
 **The one rule the whole system is built around: the LLM never touches
@@ -47,6 +44,42 @@ action; `guardrails/rules.py` — plain deterministic Python, no LLM call —
 is the only thing that decides whether that action is allowed to run, and
 `recovery/executors.py` is the only thing allowed to actually run it. The
 LLM cannot argue its way past either layer.
+
+## One event, start to finish
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Gen as Data Generator
+    participant Diag as Diagnosis Agent
+    participant Guard as Guardrail Engine
+    participant Exec as Recovery Executor
+    participant Rzp as Razorpay Test Mode
+    participant Audit as Audit Trail (Postgres)
+    participant UI as Dashboard (Realtime)
+
+    Gen->>Diag: payment_failed event + customer context
+    Diag->>Diag: Groq (primary) — tool-call diagnosis
+    alt Groq unavailable
+        Diag->>Diag: fall back to Gemini
+    end
+    alt both LLMs unavailable
+        Diag->>Diag: fall back to deterministic heuristic
+    end
+    Diag->>Guard: proposed action (e.g. smart_retry) + confidence
+    Guard->>Guard: run all 12 rules — log every pass/fail
+    alt any rule fails
+        Guard->>Audit: write blocked_by_guardrail + reason
+    else all 12 pass
+        Guard->>Exec: cleared to execute
+        Exec->>Rzp: create real Test Mode payment link
+        Rzp-->>Exec: link object (zero real money)
+        Exec->>Exec: draw probabilistic outcome
+        Exec->>Audit: write executed + outcome
+    end
+    Audit->>UI: Realtime push — new decision row
+    UI->>UI: live feed updates, no polling
+```
 
 ## Request flow (one event, end to end)
 
