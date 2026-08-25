@@ -62,7 +62,7 @@ export interface DecisionRow {
   outcome_notes: string | null;
   razorpay_payment_link: string | null;
   is_live_integration: boolean;
-  llm_provider: "groq" | "gemini" | null;
+  llm_provider: "groq" | "gemini" | "heuristic" | null;
   llm_fallback_used: boolean;
   customer_message: string | null;
   created_at: string;
@@ -97,12 +97,83 @@ export interface ExceptionRow {
   action_status: ActionStatus;
   reasoning_text: string;
   outcome_notes: string | null;
+  llm_provider: "groq" | "gemini" | "heuristic" | null;
+}
+
+export interface CashFlowMetrics {
+  average_daily_revenue_assumed: number;
+  days_of_reduced_receivables: number | null;
+  subscription_mrr_at_risk: number;
+  subscription_mrr_recovered: number;
+  pct_at_risk_mrr_prevented: number | null;
 }
 
 export interface MetricsResponse {
   overview: MetricsOverview;
   by_root_cause: MetricsByRootCause[];
   exceptions: ExceptionRow[];
+  cash_flow: CashFlowMetrics;
+}
+
+export type BatchStatusValue = "running" | "paused" | "completed" | "error";
+
+export interface BatchStatus {
+  batch_id: string;
+  n: number;
+  total: number;
+  processed: number;
+  status: BatchStatusValue;
+  skipped_paused: number;
+  decisions_written: number;
+  error: string | null;
+}
+
+// FEATURES.md #4 — one customer's full recovery journey.
+export interface CustomerTimelineStep extends DecisionRow {
+  event_type: EventType | null;
+  event_amount: number | null;
+  event_currency: string | null;
+}
+
+export interface CustomerTimelineResponse {
+  customer_id: string;
+  customer: CustomerContext | null;
+  steps: CustomerTimelineStep[];
+}
+
+// FEATURES.md #5 — counterfactual override sandbox.
+export interface CounterfactualResponse {
+  event_id: string;
+  action: ActionType;
+  root_cause_used: string | null;
+  simulated: true;
+  checks: GuardrailCheck[];
+  action_status: ActionStatus;
+  block_reason: string | null;
+  simulated_recovery_probability: number | null;
+  simulated_expected_recovery_amount: number | null;
+}
+
+// FEATURES.md #6 — fairness/consistency check.
+export interface FairnessSegmentStat {
+  segment_value: string;
+  decision_count: number;
+  restrictive_count: number;
+  restrictive_rate_pct: number;
+}
+
+export interface FairnessDimension {
+  dimension: string;
+  segments: FairnessSegmentStat[];
+  max_delta_pp: number | null;
+  flagged: boolean;
+  summary: string;
+}
+
+export interface FairnessReport {
+  threshold_pp: number;
+  sample_size: number;
+  dimensions: FairnessDimension[];
 }
 
 export interface AuditVerifyResponse {

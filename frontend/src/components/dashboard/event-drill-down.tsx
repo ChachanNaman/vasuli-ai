@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { DecisionSourceBadge } from "@/components/dashboard/decision-source-badge";
+import { CounterfactualSandbox } from "@/components/dashboard/counterfactual-sandbox";
 import type { DecisionRow } from "@/lib/types";
 import {
   formatActionType,
@@ -33,9 +36,18 @@ export function EventDrillDown({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-mono text-base">{decision.event_id}</DialogTitle>
-          <DialogDescription>
-            Full reasoning trace — diagnosis, guardrail checks, action, and outcome.
+          <div className="flex items-center gap-2 flex-wrap">
+            <DialogTitle className="font-mono text-base">{decision.event_id}</DialogTitle>
+            <DecisionSourceBadge decision={decision} />
+          </div>
+          <DialogDescription className="flex items-center gap-2 flex-wrap">
+            <span>Full reasoning trace — diagnosis, guardrail checks, action, and outcome.</span>
+            <Link
+              href={`/dashboard/customers/${encodeURIComponent(decision.customer_id)}`}
+              className="text-primary underline underline-offset-2 font-mono text-xs"
+            >
+              View {decision.customer_id}&apos;s recovery journey →
+            </Link>
           </DialogDescription>
         </DialogHeader>
 
@@ -99,7 +111,7 @@ export function EventDrillDown({
 
           <section>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-              Action taken
+              {decision.action_status === "executed" ? "Action taken" : "Action proposed"}
             </h4>
             <div className="flex items-center gap-2">
               <Badge>{formatActionType(decision.action_type)}</Badge>
@@ -109,6 +121,19 @@ export function EventDrillDown({
                 {formatActionType(decision.action_status)}
               </Badge>
             </div>
+            {decision.action_status === "blocked_by_guardrail" && (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                The AI proposed {formatActionType(decision.action_type)}; the guardrail engine
+                blocked it before it could run. Nothing was substituted in its place — see
+                &ldquo;Guardrail checks&rdquo; above for exactly which rule stopped it.
+              </p>
+            )}
+            {decision.action_status === "skipped_opt_out" && (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                The AI proposed {formatActionType(decision.action_type)}; it was never sent
+                because this customer opted out of recovery comms.
+              </p>
+            )}
             {decision.customer_message && (
               <p className="mt-2 text-sm bg-muted/30 rounded-md p-3 italic">
                 &ldquo;{decision.customer_message}&rdquo;
@@ -154,6 +179,10 @@ export function EventDrillDown({
               {formatAbsoluteTime(decision.timestamp)}
             </p>
           </section>
+
+          <Separator />
+
+          <CounterfactualSandbox eventId={decision.event_id} />
         </div>
       </DialogContent>
     </Dialog>

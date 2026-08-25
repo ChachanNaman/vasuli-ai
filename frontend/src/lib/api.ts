@@ -1,8 +1,13 @@
 import type {
+  ActionType,
   AuditVerifyResponse,
+  BatchStatus,
+  CounterfactualResponse,
+  CustomerTimelineResponse,
   DecisionRow,
   EventRow,
   EvalComparisonResponse,
+  FairnessReport,
   MetricsResponse,
 } from "./types";
 
@@ -20,14 +25,23 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json();
 }
 
-export function runBatch(n: number, seed?: number) {
-  return apiFetch<{ decisions_written: number; decisions: DecisionRow[] }>(
-    "/api/run-batch",
-    {
-      method: "POST",
-      body: JSON.stringify({ n, seed }),
-    }
-  );
+export function startBatch(n: number, seed?: number) {
+  return apiFetch<{ batch_id: string; n: number }>("/api/run-batch", {
+    method: "POST",
+    body: JSON.stringify({ n, seed }),
+  });
+}
+
+export function getBatchStatus(batchId: string) {
+  return apiFetch<BatchStatus>(`/api/batches/${batchId}/status`);
+}
+
+export function pauseBatch(batchId: string) {
+  return apiFetch<BatchStatus>(`/api/batches/${batchId}/pause`, { method: "POST" });
+}
+
+export function resumeBatch(batchId: string) {
+  return apiFetch<BatchStatus>(`/api/batches/${batchId}/resume`, { method: "POST" });
 }
 
 export function getEvents(limit = 100) {
@@ -48,4 +62,21 @@ export function getAuditVerify() {
 
 export function getEvalComparison(cases = 300, seed = 42) {
   return apiFetch<EvalComparisonResponse>(`/api/eval/comparison?cases=${cases}&seed=${seed}`);
+}
+
+export function getCustomerTimeline(customerId: string) {
+  return apiFetch<CustomerTimelineResponse>(
+    `/api/customers/${encodeURIComponent(customerId)}/timeline`
+  );
+}
+
+export function runCounterfactual(eventId: string, action: ActionType) {
+  return apiFetch<CounterfactualResponse>(
+    `/api/events/${encodeURIComponent(eventId)}/counterfactual`,
+    { method: "POST", body: JSON.stringify({ action }) }
+  );
+}
+
+export function getFairnessReport() {
+  return apiFetch<FairnessReport>("/api/eval/fairness");
 }

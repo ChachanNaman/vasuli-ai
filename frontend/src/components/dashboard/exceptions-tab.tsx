@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
+import { DecisionSourceBadge } from "@/components/dashboard/decision-source-badge";
 import type { ExceptionRow } from "@/lib/types";
 import { formatActionType, formatRootCause, formatRelativeTime } from "@/lib/format";
 
@@ -29,8 +31,18 @@ export function ExceptionsTab({ exceptions }: { exceptions: ExceptionRow[] }) {
           className="rounded-lg border border-border/60 bg-card px-4 py-3"
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="font-mono text-xs text-muted-foreground">{e.event_id}</span>
-            <span className="text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-mono text-xs text-muted-foreground truncate">
+                {e.event_id}
+              </span>
+              <Link
+                href={`/dashboard/customers/${encodeURIComponent(e.customer_id)}`}
+                className="font-mono text-xs text-primary underline underline-offset-2 shrink-0"
+              >
+                {e.customer_id}
+              </Link>
+            </div>
+            <span className="text-xs text-muted-foreground shrink-0">
               {formatRelativeTime(e.timestamp)}
             </span>
           </div>
@@ -38,6 +50,7 @@ export function ExceptionsTab({ exceptions }: { exceptions: ExceptionRow[] }) {
             <Badge variant="outline">{formatRootCause(e.root_cause)}</Badge>
             <Badge variant="secondary">{formatActionType(e.action_type)}</Badge>
             <Badge variant="outline">{formatActionType(e.action_status)}</Badge>
+            <DecisionSourceBadge decision={e} />
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{e.reasoning_text}</p>
           {e.outcome_notes && (

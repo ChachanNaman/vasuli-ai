@@ -11,6 +11,7 @@ import { RecoveryOverTimeChart } from "@/components/dashboard/recovery-over-time
 import { LiveFeed } from "@/components/dashboard/live-feed";
 import { ExceptionsTab } from "@/components/dashboard/exceptions-tab";
 import { BaselineComparison } from "@/components/dashboard/baseline-comparison";
+import { FairnessCard } from "@/components/dashboard/fairness-card";
 import { EventDrillDown } from "@/components/dashboard/event-drill-down";
 import { RunBatchButton } from "@/components/dashboard/run-batch-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,7 +45,7 @@ export default function DashboardPage() {
         <RunBatchButton />
       </header>
 
-      <KpiRow overview={metricsQuery.data?.overview} />
+      <KpiRow overview={metricsQuery.data?.overview} cashFlow={metricsQuery.data?.cash_flow} />
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList>
@@ -83,6 +84,7 @@ export default function DashboardPage() {
                 <RecoveryOverTimeChart decisions={decisionsQuery.data ?? []} />
               </CardContent>
             </Card>
+            <FairnessCard />
           </motion.div>
         </TabsContent>
 

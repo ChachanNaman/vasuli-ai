@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { supabase } from "@/lib/supabase";
 import type { DecisionRow } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
+import { DecisionSourceBadge } from "@/components/dashboard/decision-source-badge";
 import { formatActionType, formatCompactINR, formatRootCause, formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -84,9 +86,11 @@ export function LiveFeed({
         {feed.map((d) => {
           const blocked = d.action_status === "blocked_by_guardrail";
           return (
-            <motion.button
+            <motion.div
               key={d.decision_id}
               layout
+              role="button"
+              tabIndex={0}
               initial={{ opacity: 0, y: -12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
@@ -96,6 +100,9 @@ export function LiveFeed({
                   : { type: "spring", stiffness: 320, damping: 28 }
               }
               onClick={() => onSelect(d)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") onSelect(d);
+              }}
               className={cn(
                 "w-full text-left rounded-lg border border-border/60 border-l-4 bg-card px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer",
                 statusStyles(d.action_status)
@@ -106,7 +113,15 @@ export function LiveFeed({
                   <span className="font-mono text-xs text-muted-foreground truncate">
                     {d.event_id}
                   </span>
+                  <Link
+                    href={`/dashboard/customers/${encodeURIComponent(d.customer_id)}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-mono text-xs text-primary underline underline-offset-2 shrink-0"
+                  >
+                    {d.customer_id}
+                  </Link>
                   <StatusBadge status={d.action_status} />
+                  <DecisionSourceBadge decision={d} />
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0">
                   {formatRelativeTime(d.timestamp)}
@@ -127,7 +142,7 @@ export function LiveFeed({
                   Groq unavailable — Gemini fallback used
                 </p>
               )}
-            </motion.button>
+            </motion.div>
           );
         })}
       </AnimatePresence>
