@@ -25,14 +25,14 @@ const architectureLayers = [
     title: "Diagnosis agent",
     body: "Groq primary, Gemini automatic fallback. Given one event's full context, it confirms the root cause and picks exactly one action from a fixed menu — never freeform. Below a confidence threshold, it's told to flag for human review instead of guessing.",
     tag: "LLM · proposes only",
-    image: null as string | null,
+    image: "/illustrations/diagnosis-agent.jpg" as string | null,
   },
   {
     icon: ShieldCheck,
     title: "Guardrail engine",
     body: "Plain deterministic code — no LLM involved. Retry caps, cool-downs, contact caps, opt-out enforcement, spend caps on invoices, and the retry rate limit that fixed a real retry-storm bug. Every check is logged, pass or fail.",
     tag: "Deterministic · decides",
-    image: null as string | null,
+    image: "/illustrations/guardrail-engine.jpg" as string | null,
   },
   {
     icon: Wallet,
@@ -46,7 +46,7 @@ const architectureLayers = [
     title: "Audit trail",
     body: "Every decision — executed, blocked, or skipped — is written with its full reasoning, every guardrail check, and the outcome. Nothing is swept under the rug, including what couldn't be recovered.",
     tag: "Supabase · full history",
-    image: null as string | null,
+    image: "/illustrations/audit-trail.jpg" as string | null,
   },
 ];
 
@@ -205,7 +205,7 @@ export default function LandingPage() {
             </div>
             <ScrollZoom scaleRange={[0.94, 1.05]}>
               <motion.div
-                className="relative dark:grayscale dark:contrast-125"
+                className="relative"
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}

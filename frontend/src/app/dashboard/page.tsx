@@ -14,6 +14,7 @@ import { BaselineComparison } from "@/components/dashboard/baseline-comparison";
 import { FairnessCard } from "@/components/dashboard/fairness-card";
 import { EventDrillDown } from "@/components/dashboard/event-drill-down";
 import { RunBatchButton } from "@/components/dashboard/run-batch-button";
+import { AmbientBackground } from "@/components/motion/ambient-background";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DecisionRow } from "@/lib/types";
@@ -34,7 +35,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 md:px-6 py-8 space-y-6">
+    <div className="relative mx-auto max-w-6xl px-4 md:px-6 py-8 space-y-6">
+      <AmbientBackground />
       <header className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
