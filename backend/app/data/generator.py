@@ -188,6 +188,23 @@ def gen_checkout_abandoned() -> RevenueEvent:
     )
 
 
+def _gen_promise_to_pay_date() -> str | None:
+    """~25% of invoices have an active human-logged payment promise on
+    record. Split roughly evenly between still-pending (future date, the
+    guardrail should defer) and broken (past date, the guardrail should
+    allow escalation) so a normal-sized demo batch exercises both branches
+    of the promise-to-pay rule, not just one."""
+    if random.random() >= 0.25:
+        return None
+    if random.random() < 0.5:
+        days_out = random.randint(1, 10)
+        dt = datetime.utcnow() + timedelta(days=days_out)
+    else:
+        days_ago = random.randint(1, 14)
+        dt = datetime.utcnow() - timedelta(days=days_ago)
+    return dt.date().isoformat()
+
+
 def gen_invoice_overdue() -> RevenueEvent:
     days_overdue = random.choices(
         [random.randint(1, 15), random.randint(16, 45), random.randint(46, 120)],
@@ -205,6 +222,7 @@ def gen_invoice_overdue() -> RevenueEvent:
         days_overdue=days_overdue,
         business_customer_name=random.choice(BUSINESS_NAMES),
         payment_reliability_score=round(random.betavariate(5, 2), 2),
+        promise_to_pay_date=_gen_promise_to_pay_date(),
     )
 
 

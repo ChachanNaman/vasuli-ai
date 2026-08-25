@@ -11,7 +11,7 @@ flowchart TB
     subgraph BE["Backend — FastAPI (Render)"]
         GEN["Data Generator\n(synthetic loss events)"]
         DIAG["Diagnosis Agent\nGroq → Gemini → heuristic"]
-        GUARD["Guardrail Engine\n12 deterministic rules\nNO LLM"]
+        GUARD["Guardrail Engine\n13 deterministic rules\nNO LLM"]
         EXEC["Recovery Executors\nretry · payment link · nudge\nB2B chase · mandate re-auth"]
         AUDIT["Audit Trail\nhash-chained, tamper-evident"]
         EVAL["Evaluation Harness\ndo_nothing / fixed_dunning /\nvasuli / max_pressure"]
@@ -67,10 +67,10 @@ sequenceDiagram
         Diag->>Diag: fall back to deterministic heuristic
     end
     Diag->>Guard: proposed action (e.g. smart_retry) + confidence
-    Guard->>Guard: run all 12 rules — log every pass/fail
+    Guard->>Guard: run all 13 rules — log every pass/fail
     alt any rule fails
         Guard->>Audit: write blocked_by_guardrail + reason
-    else all 12 pass
+    else all 13 pass
         Guard->>Exec: cleared to execute
         Exec->>Rzp: create real Test Mode payment link
         Rzp-->>Exec: link object (zero real money)
@@ -100,7 +100,7 @@ sequenceDiagram
    allowed action set. This is a real fallback, not a theoretical one: it
    has fired in development when Groq emitted malformed tool-call JSON and
    Gemini's free-tier daily quota was simultaneously exhausted.
-3. **Guardrail-check** — `guardrails/rules.py` runs all 12 rules against
+3. **Guardrail-check** — `guardrails/rules.py` runs all 13 rules against
    the proposed action, regardless of what the diagnosis layer recommended.
    Every rule's pass/fail result is recorded, not just the ones that
    blocked something.
@@ -123,7 +123,7 @@ sequenceDiagram
    (`metrics_overview`, `metrics_by_root_cause`, `metrics_exceptions`),
    computed on read from `decisions`, never stored redundantly.
 
-## Guardrail rules — 12 total, named regulations where they apply
+## Guardrail rules — 13 total, named regulations where they apply
 
 | Rule | Regulatory / policy basis | Logic |
 |---|---|---|
@@ -132,6 +132,7 @@ sequenceDiagram
 | Daily contact cap | RBI fair-practice codes | Max 2 recovery touches per customer per 24h across all channels |
 | Opt-out enforcement | TRAI DND registry + customer's own opt-out flag | No comms action if the customer opted out |
 | Spend/amount cap | Internal policy | Invoices over ₹1,00,000 flagged for human review only |
+| Promise-to-pay | Internal policy | A logged `promise_to_pay_date` in the future defers escalation; once that date passes with no payment, escalation is explicitly allowed again — deferral, never a permanent block |
 | Retry rate limit | Card network rules (timing dimension) | No more than 1 retry per payment per 30 minutes — prevents retry storms |
 | Reliability floor (B2B) | Internal policy | `payment_reliability_score < 0.3` → firmer tier, `>= 0.7` → soft reminder |
 | Contact window | RBI recovery-agent guidelines: contact roughly 08:00–19:00 IST | No customer-facing action outside this window |

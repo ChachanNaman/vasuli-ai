@@ -12,6 +12,8 @@ import { LiveFeed } from "@/components/dashboard/live-feed";
 import { ExceptionsTab } from "@/components/dashboard/exceptions-tab";
 import { BaselineComparison } from "@/components/dashboard/baseline-comparison";
 import { FairnessCard } from "@/components/dashboard/fairness-card";
+import { StabilityCard } from "@/components/dashboard/stability-card";
+import { DiagnosisAgreementCard } from "@/components/dashboard/diagnosis-agreement-card";
 import { EventDrillDown } from "@/components/dashboard/event-drill-down";
 import { RunBatchButton } from "@/components/dashboard/run-batch-button";
 import { AmbientBackground } from "@/components/motion/ambient-background";
@@ -100,8 +102,10 @@ export default function DashboardPage() {
           <ExceptionsTab exceptions={metricsQuery.data?.exceptions ?? []} />
         </TabsContent>
 
-        <TabsContent value="vs-baseline" className="mt-4">
+        <TabsContent value="vs-baseline" className="mt-4 space-y-4">
           <BaselineComparison />
+          <StabilityCard />
+          <DiagnosisAgreementCard />
         </TabsContent>
       </Tabs>
 

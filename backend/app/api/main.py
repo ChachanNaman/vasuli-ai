@@ -32,8 +32,10 @@ from app.audit.metrics import (
 )
 from app.audit.supabase_client import get_supabase
 from app.audit.verify import verify_chain
+from app.eval.diagnosis_agreement import run_diagnosis_agreement
 from app.eval.fairness import run_fairness_check
 from app.eval.run_comparison import build_report
+from app.eval.stability import run_stability_report
 from app.guardrails.rules import run_guardrails
 from app.recovery.outcome_model import expected_recovery_probability
 
@@ -247,6 +249,33 @@ def api_eval_fairness():
     shouldn't matter? Reported honestly either way, see
     app/eval/fairness.py."""
     return run_fairness_check()
+
+
+@app.get("/api/eval/stability")
+def api_eval_stability(
+    cases: int = Query(200, ge=10, le=1000),
+    seeds: int = Query(20, ge=2, le=50),
+    base_seed: int = Query(42),
+):
+    """Runs the vs.-Baseline comparison across multiple independent seeds
+    and reports mean/std/coefficient-of-variation per arm per metric, with
+    an explicit stable/noisy flag — answers "would this headline number
+    still say the same thing on a different seed?" rather than presenting
+    one seed's point estimate as if it were exact. See app/eval/stability.py."""
+    return run_stability_report(cases_per_seed=cases, n_seeds=seeds, base_seed=base_seed)
+
+
+@app.post("/api/eval/diagnosis-agreement")
+def api_eval_diagnosis_agreement(
+    cases: int = Query(15, ge=1, le=30),
+    seed: int = Query(42),
+):
+    """Makes real, live LLM calls (costs API quota, not reproducible
+    run-to-run) — POST, not GET, and capped at 30 cases, so it's never
+    triggered accidentally by a page load. See
+    app/eval/diagnosis_agreement.py for why this measures LLM-vs-heuristic
+    agreement rather than accuracy against a label."""
+    return run_diagnosis_agreement(n_cases=cases, seed=seed)
 
 
 @app.get("/api/metrics")

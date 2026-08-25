@@ -35,9 +35,9 @@ So the system is split into two halves with a hard wall between them:
 ```mermaid
 flowchart LR
     A["Loss event"] --> B["Diagnosis Agent\n(LLM — proposes only)"]
-    B -- "one action, from a\nfixed menu of 7" --> C{{"Guardrail Engine\n(12 rules, zero LLM)"}}
+    B -- "one action, from a\nfixed menu of 7" --> C{{"Guardrail Engine\n(13 rules, zero LLM)"}}
     C -- "any rule fails" --> D["Blocked\nreason logged"]
-    C -- "all 12 pass" --> E["Recovery Executor\n(real Razorpay Test Mode)"]
+    C -- "all 13 pass" --> E["Recovery Executor\n(real Razorpay Test Mode)"]
     style C fill:#2563eb,color:#fff,stroke:#1e3a8a,stroke-width:2px
 ```
 
@@ -49,17 +49,17 @@ mandate re-auth, flag for human review, or recommend no action at all. It
 can never invent an eighth option. Its output is structured JSON via
 tool-calling, never free text, so every decision is machine-checkable.
 
-That proposal then hits 12 plain Python functions — no AI, no model call,
+That proposal then hits 13 plain Python functions — no AI, no model call,
 nothing non-deterministic — checking things like retry caps, contact-hour
 windows, opt-out status, and an economic stopping rule that blocks an action
 outright if the expected recovery doesn't clear 3× its cost. Every single
 check runs on every decision, and every result — pass *and* fail — gets
-written to the audit trail. Only if all 12 pass does a third layer,
+written to the audit trail. Only if all 13 pass does a third layer,
 `executors.py`, get to actually do anything.
 
 ![Full reasoning trace](docs/images/drill-down.jpg)
 
-*Every decision's full trace — the diagnosis, all 12 checks, the action
+*Every decision's full trace — the diagnosis, all 13 checks, the action
 taken, the outcome. Nothing here is a black box.*
 
 ## What happens when Groq is down
@@ -179,7 +179,7 @@ not just true:
 
 The pipeline runs end-to-end against real infrastructure — real Razorpay
 Test Mode payment links, a real hash-chained Postgres audit trail, real
-Supabase Realtime streaming to the dashboard — covered by 125 passing
+Supabase Realtime streaming to the dashboard — covered by 136 passing
 tests. What's left is deployment and recording the pitch video, both
 genuinely just execution at this point, not open design questions.
 

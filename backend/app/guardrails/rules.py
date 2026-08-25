@@ -256,6 +256,49 @@ def check_invoice_spend_cap(event: dict, proposed_action: str) -> GuardrailCheck
     )
 
 
+def check_promise_to_pay(event: dict, now: datetime) -> GuardrailCheck:
+    """A customer's logged commitment to pay by a specific date is a real
+    trust relationship — escalating again before that date arrives
+    undermines the exact thing the chase sequence exists to preserve, so a
+    pending promise defers escalation.
+
+    But a promise that has already passed with no payment is not a reason
+    for permanent silence — the opposite: a broken promise is itself a
+    stronger signal that this account needs firmer follow-up, not less. So
+    this rule only ever defers (block), never permanently blocks — once
+    the promised date is in the past, escalation is explicitly allowed to
+    proceed. This asymmetry is the whole point of the rule; a rule that
+    just paused forever on any promise would let a customer stall
+    indefinitely by promising and never paying.
+
+    Policy cap, not a cited regulation — same basis as invoice_spend_cap
+    above."""
+    if event.get("event_type") != "invoice_overdue":
+        return GuardrailCheck("promise_to_pay", True, "not an invoice event")
+
+    promise_date_str = event.get("promise_to_pay_date")
+    if not promise_date_str:
+        return GuardrailCheck("promise_to_pay", True, "no active payment promise on record")
+
+    promise_date = datetime.fromisoformat(promise_date_str).replace(tzinfo=timezone.utc)
+    if now < promise_date:
+        remaining = promise_date - now
+        return GuardrailCheck(
+            "promise_to_pay",
+            False,
+            f"customer promised to pay by {promise_date_str}, {remaining} remaining; "
+            "deferring escalation until the promise date passes",
+        )
+
+    overdue_by = now - promise_date
+    return GuardrailCheck(
+        "promise_to_pay",
+        True,
+        f"promise to pay by {promise_date_str} was broken {overdue_by} ago; "
+        "escalation is warranted, not withheld",
+    )
+
+
 def check_contact_window(proposed_action: str, now: datetime) -> GuardrailCheck:
     """No customer-facing action (call, SMS, WhatsApp, or a link handed to
     them to act on) outside 08:00-19:00 IST; queue until the window opens.
@@ -489,6 +532,7 @@ def run_guardrails(
         check_daily_contact_cap(customer_id, now, past_decisions),
         check_opt_out(event, proposed_action),
         check_invoice_spend_cap(event, proposed_action),
+        check_promise_to_pay(event, now),
         check_retry_rate_limit(event, now, past_decisions),
         check_reliability_floor(event),
         check_contact_window(proposed_action, now),

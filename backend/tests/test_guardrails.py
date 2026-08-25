@@ -24,6 +24,7 @@ from app.guardrails.rules import (
     check_mandate_pre_debit_notice,
     check_max_retry_attempts,
     check_opt_out,
+    check_promise_to_pay,
     check_reliability_floor,
     check_retry_rate_limit,
     run_guardrails,
@@ -38,7 +39,7 @@ NOW = datetime(2026, 8, 20, 12, 0, 0, tzinfo=timezone.utc)
 # used by the new contact_window tests below.
 THREE_AM_IST = datetime(2026, 8, 20, 21, 30, 0, tzinfo=timezone.utc)
 
-TOTAL_GUARDRAIL_CHECKS = 12
+TOTAL_GUARDRAIL_CHECKS = 13
 
 
 def base_customer(**overrides):
@@ -238,6 +239,40 @@ def test_invoice_spend_cap_passes_under_1l():
 def test_invoice_spend_cap_ignores_non_invoice_events():
     event = base_event(event_type="payment_failed", amount=999999)
     result = check_invoice_spend_cap(event, "smart_retry")
+    assert result.passed
+
+
+# ---------------------------------------------------------------------------
+# promise_to_pay
+# ---------------------------------------------------------------------------
+
+
+def test_promise_to_pay_passes_with_no_promise_on_record():
+    event = base_event(event_type="invoice_overdue")
+    result = check_promise_to_pay(event, NOW)
+    assert result.passed
+
+
+def test_promise_to_pay_blocks_while_promise_is_still_pending():
+    event = base_event(
+        event_type="invoice_overdue", promise_to_pay_date="2026-08-25"
+    )
+    result = check_promise_to_pay(event, datetime(2026, 8, 20, tzinfo=timezone.utc))
+    assert not result.passed
+
+
+def test_promise_to_pay_allows_escalation_once_promise_is_broken():
+    event = base_event(
+        event_type="invoice_overdue", promise_to_pay_date="2026-08-10"
+    )
+    result = check_promise_to_pay(event, datetime(2026, 8, 20, tzinfo=timezone.utc))
+    assert result.passed
+    assert "broken" in result.detail
+
+
+def test_promise_to_pay_ignores_non_invoice_events():
+    event = base_event(event_type="payment_failed")
+    result = check_promise_to_pay(event, NOW)
     assert result.passed
 
 

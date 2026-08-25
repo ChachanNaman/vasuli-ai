@@ -102,7 +102,7 @@ def test_counterfactual_clears_and_returns_simulated_probability(monkeypatch):
     body = response.json()
     assert body["simulated"] is True
     assert body["action_status"] == "executed"
-    assert len(body["checks"]) == 12
+    assert len(body["checks"]) == 13
     assert body["simulated_recovery_probability"] is not None
     assert body["simulated_expected_recovery_amount"] is not None
 

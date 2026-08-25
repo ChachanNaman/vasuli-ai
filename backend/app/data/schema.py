@@ -83,6 +83,12 @@ class RevenueEvent:
     days_overdue: Optional[int] = None
     business_customer_name: Optional[str] = None
     payment_reliability_score: Optional[float] = None  # 0-1, historical
+    # A customer's stated commitment to pay by a specific date (e.g. from a
+    # phone call or email a human logged). ISO date string, or None if no
+    # active promise is on record. Present on a minority of invoice_overdue
+    # events (see generator.py) so the promise-to-pay guardrail rule has
+    # both "pending promise" and "broken promise" cases to exercise.
+    promise_to_pay_date: Optional[str] = None
 
     # Shared, any event type: once a payment is disputed/charged back,
     # collection action on it should stop pending resolution

@@ -23,7 +23,7 @@ Built for **Razorpay's AI Buildathon, Track 03: AI Revenue Recovery.**
 
 One sentence a judge should walk away with: **the LLM never touches money
 directly.** It only ever gets to *propose*. A separate, 100% deterministic
-layer — 12 plain Python rules, zero AI — decides whether that proposal is
+layer — 13 plain Python rules, zero AI — decides whether that proposal is
 allowed to run, and a third layer is the only thing allowed to actually run
 it. Every decision, blocked or executed, is written to a tamper-evident
 audit trail.
@@ -31,7 +31,7 @@ audit trail.
 ```mermaid
 flowchart LR
     A["Loss event\npayment_failed · checkout_abandoned\nsubscription_charge_failed · invoice_overdue"] --> B["Diagnosis Agent\nGroq → Gemini → heuristic"]
-    B -- "proposes ONE action\nfrom a fixed menu" --> C{{"Guardrail Engine\n12 deterministic rules"}}
+    B -- "proposes ONE action\nfrom a fixed menu" --> C{{"Guardrail Engine\n13 deterministic rules"}}
     C -- "blocked" --> D["Audit Trail\nreason logged"]
     C -- "cleared" --> E["Recovery Executor\nreal Razorpay Test Mode"]
     E --> D
@@ -59,7 +59,7 @@ slide:
 | Measured money recovered across a batch | KPI row computed live from the current batch — ₹ recovered, recovery rate, exposure |
 | Baseline-compared, not just raw recovery | Evaluation harness: `do_nothing` / `fixed_dunning` / `vasuli` / `max_pressure`, common random numbers, **incremental** recovery is the headline |
 | Compliant escalation | Opt-outs, contact-frequency caps, and named regulatory constraints (RBI contact hours, e-mandate notice, TRAI DLT templates) |
-| Stopping rules | 12-rule guardrail engine, including an economic stopping rule that forces restraint when an action costs more than it could plausibly recover |
+| Stopping rules | 13-rule guardrail engine, including an economic stopping rule that forces restraint when an action costs more than it could plausibly recover |
 | Audit trail | Every decision hash-chained — tampering with any past record is provably detectable, not just logged |
 | Honest exceptions | A dedicated "could not recover" list with reasons, never hidden |
 
@@ -83,7 +83,7 @@ flowchart TB
     end
     subgraph BE["Backend — FastAPI (Render)"]
         GEN["Data Generator"] --> DIAG["Diagnosis Agent"]
-        DIAG --> GUARD{{"Guardrail Engine\n12 rules"}}
+        DIAG --> GUARD{{"Guardrail Engine\n13 rules"}}
         GUARD --> EXEC["Recovery Executors"]
         EXEC --> AUDIT["Audit Trail\nhash-chained"]
     end
@@ -98,7 +98,7 @@ flowchart TB
 Full request-flow walkthrough, sequence diagram, data model, and API
 reference: **[docs/architecture.md](docs/architecture.md)**.
 
-## The guardrail engine — 12 rules, zero LLM calls
+## The guardrail engine — 13 rules, zero LLM calls
 
 Every rule runs on every proposed action — pass or fail, both get written
 to the audit trail.
@@ -110,6 +110,7 @@ to the audit trail.
 | Daily contact cap | RBI fair-practice codes — max 2 touches/customer/24h |
 | Opt-out enforcement | TRAI DND registry + the customer's own opt-out flag |
 | Spend/amount cap | Invoices over ₹1,00,000 flagged for human review only |
+| Promise-to-pay | A logged customer commitment defers escalation until the date passes — a broken promise then *allows* escalation, it never blocks forever |
 | Retry rate limit | Prevents retry storms — see [the failure story](BLOG.md#the-2am-bug) |
 | Reliability floor (B2B) | Chase tone tiered by historical payment reliability |
 | Contact window | RBI recovery-agent guidelines — 08:00–19:00 IST only |
@@ -128,6 +129,8 @@ seeds — 240/240 blocked, zero disallowed actions ever reach the executor.
 
 - **Three-way LLM degradation** — Groq (primary) → Gemini (auto-fallback) → a zero-API-key deterministic heuristic agent if both fail. This has fired for real during development, not just in theory.
 - **Incremental recovery, not raw** — ~15–20% of at-risk value in this dataset comes back with *zero* intervention; counting that as the agent's win is the easiest way for a recovery product to flatter itself. The evaluation harness nets it out. Reproduce: `python -m app.eval.run_comparison --cases 500 --seed 42`.
+- **A seed-stability check on that number** — one seed's comparison could just be lucky. `GET /api/eval/stability` re-runs the full 4-arm comparison across 20 independent seeds and reports mean/std/coefficient-of-variation per metric, auto-flagging anything whose seed-to-seed swing exceeds 25% as noisy instead of presenting one point estimate with false precision. Visible live on the dashboard's vs. Baseline tab.
+- **LLM-vs-heuristic agreement, not accuracy-against-a-label** — a naive "diagnosis accuracy" eval is meaningless here (the heuristic fallback deliberately just echoes the event's failure code, so it would trivially score 100%). Instead, `POST /api/eval/diagnosis-agreement` runs the *live* LLM against the same events the heuristic sees and reports how often their independent judgment actually agrees — answering "if both LLM providers went down right now, how much would really be lost?" Also live on the dashboard, button-triggered since it costs real API calls.
 - **Hash-chained audit trail** — `python -m app.audit.verify` walks the chain and fails loudly at the first tampered record. Proven by a test that tampers with a row on purpose and confirms it's caught at the exact position.
 - **A real 2am bug, found and fixed** — an early retry executor with no rate limit made recovery *worse*, not better, caught by the system's own audit trail. Full story: [BLOG.md](BLOG.md#the-2am-bug).
 
@@ -152,7 +155,7 @@ cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp ../.env.example ../.env      # fill in Supabase / Groq / Gemini / Razorpay keys
-python -m pytest -q             # 125 tests, all deterministic — no live keys needed
+python -m pytest -q             # 136 tests, all deterministic — no live keys needed
 uvicorn app.api.main:app --reload
 ```
 
@@ -180,13 +183,13 @@ vasuli-ai/
 │   └── images/               # screenshots used in this README + the blog
 ├── backend/app/
 │   ├── data/                 # event schema + synthetic generator
-│   ├── guardrails/            # deterministic rule engine — 12 rules
+│   ├── guardrails/            # deterministic rule engine — 13 rules
 │   ├── agents/                 # diagnosis agent, heuristic fallback, Groq/Gemini client
 │   ├── recovery/                # executors, outcome model, cost model, Razorpay client
 │   ├── audit/                    # decision logger, hash chain, verify CLI, metrics
 │   ├── eval/                      # baseline-comparison harness + fairness check
 │   └── api/                        # FastAPI routes + batch pipeline
-├── backend/tests/                  # 125 tests
+├── backend/tests/                  # 136 tests
 ├── supabase/migrations/            # SQL schema — events, decisions, hash chain, metrics views
 └── frontend/                       # dashboard, live feed, drill-down, exceptions, vs. baseline
 ```
@@ -194,10 +197,10 @@ vasuli-ai/
 ## Status & known limits
 
 The full pipeline runs end-to-end against real infrastructure: generate →
-diagnose (with three-way degradation) → guardrail-check (12 rules) →
+diagnose (with three-way degradation) → guardrail-check (13 rules) →
 execute (real Razorpay Test Mode links, not placeholders) → write a
 hash-chained decision → push to the live feed over Supabase Realtime.
-Covered by 125 passing tests including an adversarial guardrail test and a
+Covered by 136 passing tests including an adversarial guardrail test and a
 full hash-chain tamper-detection test.
 
 - Render's free tier cold-starts after ~15 minutes idle — hit `/health` a few minutes before judging.

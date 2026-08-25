@@ -165,7 +165,7 @@ def test_run_batch_writes_events_and_decisions(fake_supabase, fake_diagnose):
     for row in fake_supabase.store["decisions"]:
         assert row["action_status"] in ("executed", "blocked_by_guardrail", "skipped_opt_out")
         assert isinstance(row["guardrail_checks"], list)
-        assert len(row["guardrail_checks"]) == 12
+        assert len(row["guardrail_checks"]) == 13
 
 
 def test_run_batch_hash_chain_is_intact(fake_supabase, fake_diagnose):

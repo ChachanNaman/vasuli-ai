@@ -5,10 +5,12 @@ import type {
   CounterfactualResponse,
   CustomerTimelineResponse,
   DecisionRow,
+  DiagnosisAgreementReport,
   EventRow,
   EvalComparisonResponse,
   FairnessReport,
   MetricsResponse,
+  StabilityReport,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
@@ -79,4 +81,17 @@ export function runCounterfactual(eventId: string, action: ActionType) {
 
 export function getFairnessReport() {
   return apiFetch<FairnessReport>("/api/eval/fairness");
+}
+
+export function getStabilityReport(cases = 200, seeds = 20, baseSeed = 42) {
+  return apiFetch<StabilityReport>(
+    `/api/eval/stability?cases=${cases}&seeds=${seeds}&base_seed=${baseSeed}`
+  );
+}
+
+export function runDiagnosisAgreement(cases = 15, seed = 42) {
+  return apiFetch<DiagnosisAgreementReport>(
+    `/api/eval/diagnosis-agreement?cases=${cases}&seed=${seed}`,
+    { method: "POST" }
+  );
 }

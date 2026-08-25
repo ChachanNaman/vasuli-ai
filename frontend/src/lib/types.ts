@@ -182,6 +182,58 @@ export interface AuditVerifyResponse {
   error: string | null;
 }
 
+// Multi-seed stability report — is the headline comparison number
+// representative, or did it just get lucky on this seed?
+export interface StabilityMetricStats {
+  mean: number;
+  std: number;
+  min: number;
+  max: number;
+  cv_pct: number | null;
+  stable: boolean;
+}
+
+export interface StabilityArmStats {
+  incremental_recovered: StabilityMetricStats;
+  incremental_recovery_rate_pct: StabilityMetricStats;
+  guardrail_violations: StabilityMetricStats;
+  contacts_per_case: StabilityMetricStats;
+}
+
+export interface StabilityReport {
+  n_seeds: number;
+  cases_per_seed: number;
+  base_seed: number;
+  noise_threshold_cv_pct: number;
+  arms: Record<EvalArmNameForStability, StabilityArmStats>;
+}
+
+export type EvalArmNameForStability = "do_nothing" | "fixed_dunning" | "vasuli" | "max_pressure";
+
+// LLM-vs-heuristic diagnosis agreement — costs real LLM calls, triggered
+// on demand, never auto-loaded.
+export interface DiagnosisAgreementRow {
+  event_id: string;
+  event_type: string;
+  heuristic_root_cause: string;
+  llm_root_cause: string;
+  root_cause_agree: boolean;
+  heuristic_action: string;
+  llm_action: string;
+  action_agree: boolean;
+  llm_confidence: number;
+  llm_provider: string | null;
+}
+
+export interface DiagnosisAgreementReport {
+  n_cases_requested: number;
+  n_evaluated: number;
+  llm_calls_failed: number;
+  action_agreement_pct: number | null;
+  root_cause_agreement_pct: number | null;
+  rows: DiagnosisAgreementRow[];
+}
+
 export type EvalArmName = "do_nothing" | "fixed_dunning" | "vasuli" | "max_pressure";
 
 export interface EvalArmSummary {
