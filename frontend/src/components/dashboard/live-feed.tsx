@@ -121,7 +121,7 @@ export function LiveFeed({
                     {d.customer_id}
                   </Link>
                   <StatusBadge status={d.action_status} />
-                  <DecisionSourceBadge decision={d} />
+                  <DecisionSourceBadge decision={d} hideIfRedundant />
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0">
                   {formatRelativeTime(d.timestamp)}

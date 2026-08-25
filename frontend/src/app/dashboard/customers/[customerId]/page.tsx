@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { getCustomerTimeline } from "@/lib/api";
 import { DecisionSourceBadge } from "@/components/dashboard/decision-source-badge";
+import { AmbientBackground } from "@/components/motion/ambient-background";
 import { Badge } from "@/components/ui/badge";
 import {
   formatActionType,
@@ -29,7 +30,8 @@ export default function CustomerTimelinePage({
   });
 
   return (
-    <div className="mx-auto max-w-3xl px-4 md:px-6 py-8 space-y-6">
+    <div className="relative mx-auto min-h-dvh max-w-3xl px-4 md:px-6 py-8 space-y-6">
+      <AmbientBackground />
       <header>
         <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
           ← Dashboard

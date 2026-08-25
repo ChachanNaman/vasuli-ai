@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { FlaskConical } from "lucide-react";
+import { ChevronDown, FlaskConical } from "lucide-react";
 import { runCounterfactual } from "@/lib/api";
 import { formatActionType, formatCompactINR } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -43,17 +43,20 @@ export function CounterfactualSandbox({ eventId }: { eventId: string }) {
         state — live, not a canned example. Nothing is ever sent for real from here.
       </p>
       <div className="flex items-center gap-2">
-        <select
-          value={selectedAction}
-          onChange={(e) => setSelectedAction(e.target.value as ActionType)}
-          className="text-sm rounded-md border border-border bg-background px-2 py-1.5"
-        >
-          {ACTIONS.map((action) => (
-            <option key={action} value={action}>
-              {formatActionType(action)}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            value={selectedAction}
+            onChange={(e) => setSelectedAction(e.target.value as ActionType)}
+            className="appearance-none text-sm rounded-md border border-border bg-background pl-2.5 pr-7 py-1.5 text-foreground shadow-sm transition-colors hover:border-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 cursor-pointer"
+          >
+            {ACTIONS.map((action) => (
+              <option key={action} value={action}>
+                {formatActionType(action)}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        </div>
         <button
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending}

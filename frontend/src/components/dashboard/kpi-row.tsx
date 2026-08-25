@@ -21,8 +21,9 @@ function KpiCard({ label, value, currency, suffix, subtext, cashFlowLine, accent
     <motion.div
       whileHover={{ y: -3 }}
       transition={{ type: "spring", stiffness: 300, damping: 24 }}
+      className="min-w-0"
     >
-      <Card className="border-border/60">
+      <Card className="border-border/60 min-w-0">
         <CardHeader className="pb-1">
           <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {label}

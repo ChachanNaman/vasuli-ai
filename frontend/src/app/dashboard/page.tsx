@@ -50,19 +50,21 @@ export default function DashboardPage() {
       <KpiRow overview={metricsQuery.data?.overview} cashFlow={metricsQuery.data?.cash_flow} />
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="live-feed">Live agent feed</TabsTrigger>
-          <TabsTrigger value="exceptions">
-            Exceptions
-            {metricsQuery.data && metricsQuery.data.overview.exception_count > 0 && (
-              <span className="ml-1.5 text-xs text-muted-foreground">
-                ({metricsQuery.data.overview.exception_count})
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="vs-baseline">vs. Baseline</TabsTrigger>
-        </TabsList>
+        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:overflow-visible md:px-0">
+          <TabsList className="w-max md:w-fit">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="live-feed">Live agent feed</TabsTrigger>
+            <TabsTrigger value="exceptions">
+              Exceptions
+              {metricsQuery.data && metricsQuery.data.overview.exception_count > 0 && (
+                <span className="ml-1.5 text-xs text-muted-foreground">
+                  ({metricsQuery.data.overview.exception_count})
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="vs-baseline">vs. Baseline</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
           <motion.div

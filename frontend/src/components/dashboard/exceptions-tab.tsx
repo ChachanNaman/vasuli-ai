@@ -50,7 +50,7 @@ export function ExceptionsTab({ exceptions }: { exceptions: ExceptionRow[] }) {
             <Badge variant="outline">{formatRootCause(e.root_cause)}</Badge>
             <Badge variant="secondary">{formatActionType(e.action_type)}</Badge>
             <Badge variant="outline">{formatActionType(e.action_status)}</Badge>
-            <DecisionSourceBadge decision={e} />
+            <DecisionSourceBadge decision={e} hideIfRedundant />
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{e.reasoning_text}</p>
           {e.outcome_notes && (
