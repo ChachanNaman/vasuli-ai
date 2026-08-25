@@ -11,7 +11,11 @@ got back — and how much it honestly couldn't.
 
 Built for **Razorpay's AI Buildathon, Track 03: AI Revenue Recovery.**
 
-[Architecture deep-dive](docs/architecture.md) · [How it was built (blog)](BLOG.md) · [Quick setup](#get-it-running)
+**[Live demo →](https://vasuli-ai.vercel.app)** ([backend health](https://vasuli-backend-j8me.onrender.com/health)) · [Architecture deep-dive](docs/architecture.md) · [How it was built (blog)](BLOG.md) · [Quick setup](#get-it-running)
+
+> The backend is on Render's free tier, which spins down after ~15
+> minutes idle — the first request after a gap can take ~50s to wake up.
+> If the dashboard looks empty at first, give it a moment and refresh.
 
 ![Vasuli landing page](docs/images/hero.jpg)
 

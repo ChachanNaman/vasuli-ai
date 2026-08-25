@@ -230,8 +230,11 @@ not a number tuned to look good.*
 The pipeline runs end-to-end against real infrastructure — real Razorpay
 Test Mode payment links, a real hash-chained Postgres audit trail, real
 Supabase Realtime streaming to the dashboard — covered by 136 passing
-tests. What's left is deployment and recording the pitch video, both
-genuinely just execution at this point, not open design questions.
+tests, and now deployed and reachable at
+**[vasuli-ai.vercel.app](https://vasuli-ai.vercel.app)**. What's left is
+recording the pitch video — genuinely just execution at this point, not
+an open design question.
 
+Live demo: **[vasuli-ai.vercel.app](https://vasuli-ai.vercel.app)**.
 Full technical reference: **[docs/architecture.md](docs/architecture.md)**.
 Source: **[github.com/ChachanNaman/vasuli-ai](https://github.com/ChachanNaman/vasuli-ai)**.
