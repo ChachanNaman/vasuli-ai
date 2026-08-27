@@ -6,6 +6,7 @@ convention (PRD §6.2, §7).
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
@@ -59,6 +60,39 @@ class DecisionRecord:
         }
 
 
+def _write_hash_with_retry(
+    decision_id: str, record_hash: str, fallback: dict, attempts: int = 3
+) -> dict:
+    """The insert already committed by the time we get here, so a failed
+    hash update leaves a permanently unhashed row (verify.py reports it as
+    a broken chain forever, indistinguishable from tampering). Retry with
+    backoff to ride out transient Supabase errors before giving up."""
+    supabase = get_supabase()
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            update_response = (
+                supabase.table("decisions")
+                .update({"record_hash": record_hash})
+                .eq("decision_id", decision_id)
+                .execute()
+            )
+            if update_response.data:
+                return update_response.data[0]
+            return fallback
+        except Exception as exc:  # noqa: BLE001 - retrying any transient failure
+            last_error = exc
+            if attempt < attempts - 1:
+                time.sleep(0.5 * (2**attempt))
+    logger.error(
+        "record_hash update failed after %d attempts for decision_id=%s: %s",
+        attempts,
+        decision_id,
+        last_error,
+    )
+    return fallback
+
+
 def write_event(event_row: dict) -> None:
     supabase = get_supabase()
     supabase.table("events").upsert(event_row, on_conflict="event_id").execute()
@@ -80,14 +114,7 @@ def write_decision(record: DecisionRecord) -> dict:
     decision_id = inserted.get("decision_id")
     final = {**inserted, "record_hash": record_hash}
     if decision_id:
-        update_response = (
-            supabase.table("decisions")
-            .update({"record_hash": record_hash})
-            .eq("decision_id", decision_id)
-            .execute()
-        )
-        if update_response.data:
-            final = update_response.data[0]
+        final = _write_hash_with_retry(decision_id, record_hash, fallback=final)
 
     logger.info(
         "decision written: event=%s action=%s status=%s recovered=%s hash=%s",
