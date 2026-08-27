@@ -32,6 +32,10 @@ export function RunBatchButton({ n = 12 }: { n?: number }) {
     if (status?.status === "completed" || status?.status === "error") {
       queryClient.invalidateQueries({ queryKey: ["metrics"] });
       queryClient.invalidateQueries({ queryKey: ["decisions"] });
+      queryClient.invalidateQueries({ queryKey: ["fairness"] });
+      queryClient.invalidateQueries({ queryKey: ["stability"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-verify"] });
+      queryClient.invalidateQueries({ queryKey: ["eval-comparison"] });
     }
   }, [status?.status, queryClient]);
 
