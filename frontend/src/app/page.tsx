@@ -233,7 +233,7 @@ export default function LandingPage() {
         holdDistance={0.15}
         smoothing={0.08}
         overlayScrim={0.65}
-        mediaClassName="opacity-[0.22] blur-lg grayscale"
+        mediaClassName="opacity-[0.08] blur-xl grayscale sm:opacity-[0.22] sm:blur-lg"
       />
 
       {/* Architecture — sticky stack */}
@@ -242,7 +242,7 @@ export default function LandingPage() {
           <p className="text-xs font-medium uppercase tracking-wide text-primary">
             How it works
           </p>
-          <h2 className="mt-2 text-2xl font-semibold md:text-3xl">
+          <h2 className="mt-2 pr-14 text-2xl font-semibold sm:pr-0 md:text-3xl">
             Four layers, one rule: the LLM proposes, code decides.
           </h2>
         </ScrollReveal>
