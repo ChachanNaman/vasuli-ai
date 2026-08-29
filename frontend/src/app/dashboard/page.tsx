@@ -24,22 +24,11 @@ import type { DecisionRow } from "@/lib/types";
 export default function DashboardPage() {
   const [selectedDecision, setSelectedDecision] = useState<DecisionRow | null>(null);
   const [drillDownOpen, setDrillDownOpen] = useState(false);
-  // The dashboard opens showing fixed placeholder numbers (see
-  // kpi-row.tsx's DEFAULT_OVERVIEW) instead of hitting the backend on
-  // mount — the backend can take a while to wake up from a cold start, and
-  // a page that hangs on that fetch looks broken. Real data only starts
-  // fetching once a batch is actually kicked off.
-  const [hasStarted, setHasStarted] = useState(false);
 
-  const metricsQuery = useQuery({
-    queryKey: ["metrics"],
-    queryFn: getMetrics,
-    enabled: hasStarted,
-  });
+  const metricsQuery = useQuery({ queryKey: ["metrics"], queryFn: getMetrics });
   const decisionsQuery = useQuery({
     queryKey: ["decisions"],
     queryFn: () => getDecisions(200),
-    enabled: hasStarted,
   });
 
   const handleSelect = (decision: DecisionRow) => {
@@ -57,7 +46,7 @@ export default function DashboardPage() {
           </Link>
           <h1 className="text-xl font-semibold mt-1">Recovery dashboard</h1>
         </div>
-        <RunBatchButton onRunStart={() => setHasStarted(true)} />
+        <RunBatchButton />
       </header>
 
       <div className="rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">

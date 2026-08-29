@@ -58,22 +58,6 @@ function KpiCard({ label, value, currency, suffix, subtext, cashFlowLine, accent
   );
 }
 
-// Shown the instant the dashboard opens, before any batch has run and
-// before the backend (which can take a while to wake up on a cold start)
-// has answered — a blank "₹0 / 0%" dashboard reads as broken, so these
-// illustrative placeholders fill the cards until the first real batch
-// result replaces them.
-const DEFAULT_OVERVIEW: MetricsOverview = {
-  total_exposure: 428300,
-  total_recovered: 156200,
-  total_decisions: 12,
-  recovered_count: 5,
-  recovery_rate_pct: 36.5,
-  guardrail_block_count: 4,
-  opt_out_respected_count: 1,
-  exception_count: 3,
-};
-
 export function KpiRow({
   overview,
   cashFlow,
@@ -81,11 +65,10 @@ export function KpiRow({
   overview: MetricsOverview | undefined;
   cashFlow?: CashFlowMetrics;
 }) {
-  const display = overview ?? DEFAULT_OVERVIEW;
-  const exposure = display.total_exposure;
-  const recovered = display.total_recovered;
-  const rate = display.recovery_rate_pct ?? 0;
-  const blocks = display.guardrail_block_count;
+  const exposure = overview?.total_exposure ?? 0;
+  const recovered = overview?.total_recovered ?? 0;
+  const rate = overview?.recovery_rate_pct ?? 0;
+  const blocks = overview?.guardrail_block_count ?? 0;
 
   // FEATURES.md #3 — same numbers as the cards above, reframed in
   // cash-flow language a merchant CFO/ops lead would actually use.

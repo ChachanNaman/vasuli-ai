@@ -10,13 +10,7 @@ import { LoadingLine } from "@/components/motion/loading-line";
 
 const POLL_INTERVAL_MS = 800;
 
-export function RunBatchButton({
-  n = 12,
-  onRunStart,
-}: {
-  n?: number;
-  onRunStart?: () => void;
-}) {
+export function RunBatchButton({ n = 12 }: { n?: number }) {
   const queryClient = useQueryClient();
   const [batchId, setBatchId] = useState<string | null>(null);
 
@@ -92,7 +86,6 @@ export function RunBatchButton({
           whileTap={{ scale: 0.97 }}
           onClick={() => {
             setBatchId(null);
-            onRunStart?.();
             startMutation.mutate();
           }}
           disabled={startMutation.isPending}
