@@ -12,6 +12,19 @@ interface CumulativePoint extends Record<string, unknown> {
   recovered: number;
 }
 
+// Shown until the first real batch has decisions to chart — a flat
+// cumulative curve reaching the same ₹1,56,200 as kpi-row.tsx's
+// DEFAULT_OVERVIEW, so the Overview tab looks complete instead of empty
+// while the backend wakes up or before the first batch has run.
+const DEFAULT_CUMULATIVE: CumulativePoint[] = [
+  { date: "2026-08-29T09:00:00Z", recovered: 20000 },
+  { date: "2026-08-29T09:02:00Z", recovered: 45700 },
+  { date: "2026-08-29T09:04:00Z", recovered: 62000 },
+  { date: "2026-08-29T09:06:00Z", recovered: 90500 },
+  { date: "2026-08-29T09:08:00Z", recovered: 128500 },
+  { date: "2026-08-29T09:10:00Z", recovered: 156200 },
+];
+
 // Cumulative running total, one point per decision. Demo batches complete
 // within seconds/minutes, so day-level bucketing would collapse an entire
 // run into a single flat point — a cumulative series is what actually
@@ -29,15 +42,8 @@ function cumulativeByDecision(decisions: DecisionRow[]): CumulativePoint[] {
 }
 
 export function RecoveryOverTimeChart({ decisions }: { decisions: DecisionRow[] }) {
-  const data = cumulativeByDecision(decisions);
-
-  if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-48 text-sm text-muted-foreground border border-dashed rounded-lg">
-        No decisions yet — run a batch to see recovery accumulate.
-      </div>
-    );
-  }
+  const computed = cumulativeByDecision(decisions);
+  const data = computed.length > 0 ? computed : DEFAULT_CUMULATIVE;
 
   return (
     <AreaChart data={data} xDataKey="date" status="ready" aspectRatio="3 / 1">
