@@ -18,6 +18,15 @@ class _FakeTable:
     def select(self, *_a, **_k):
         return self
 
+    def order(self, *_a, **_k):
+        return self
+
+    def limit(self, *_a, **_k):
+        return self
+
+    def eq(self, *_a, **_k):
+        return self
+
     def execute(self):
         return _Result(self._rows)
 

@@ -27,6 +27,7 @@ from app.api.pipeline import _fetch_past_decisions, start_batch
 from app.audit.metrics import (
     get_cash_flow_metrics,
     get_exceptions,
+    get_latest_batch_id,
     get_metrics_by_root_cause,
     get_metrics_overview,
 )
@@ -102,24 +103,26 @@ def api_batch_resume(batch_id: str):
 
 @app.get("/api/events")
 def api_get_events(limit: int = Query(50, le=500)):
+    """Scoped to the latest batch (supabase/migrations/0005_batch_scoping.sql)
+    so the live feed shows the run that just happened, not a mix of it and
+    every previous demo click stacked on top."""
+    batch_id = get_latest_batch_id()
     supabase = get_supabase()
-    response = (
-        supabase.table("events").select("*").order("timestamp", desc=True).limit(limit).execute()
-    )
-    return response.data or []
+    query = supabase.table("events").select("*").order("timestamp", desc=True).limit(limit)
+    if batch_id:
+        query = query.eq("batch_id", batch_id)
+    return query.execute().data or []
 
 
 @app.get("/api/decisions")
 def api_get_decisions(limit: int = Query(50, le=500)):
+    """Scoped to the latest batch, same reasoning as api_get_events."""
+    batch_id = get_latest_batch_id()
     supabase = get_supabase()
-    response = (
-        supabase.table("decisions")
-        .select("*")
-        .order("timestamp", desc=True)
-        .limit(limit)
-        .execute()
-    )
-    return response.data or []
+    query = supabase.table("decisions").select("*").order("timestamp", desc=True).limit(limit)
+    if batch_id:
+        query = query.eq("batch_id", batch_id)
+    return query.execute().data or []
 
 
 @app.get("/api/decisions/{event_id}")

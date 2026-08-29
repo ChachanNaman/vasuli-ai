@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -23,7 +24,7 @@ from app.recovery.executors import execute
 logger = logging.getLogger("vasuli.pipeline")
 
 
-def _event_to_row(event) -> dict:
+def _event_to_row(event, batch_id: Optional[str]) -> dict:
     d = event.to_dict()
     return {
         "event_id": d["event_id"],
@@ -35,6 +36,7 @@ def _event_to_row(event) -> dict:
         "customer_id": d["customer"]["customer_id"],
         "customer": d["customer"],
         "payload": d,
+        "batch_id": batch_id,
     }
 
 
@@ -65,7 +67,7 @@ def _fetch_past_decisions(customer_id: str) -> list[PastDecision]:
     return out
 
 
-def process_event(event_dict: dict) -> dict:
+def process_event(event_dict: dict, batch_id: Optional[str] = None) -> dict:
     """Diagnose -> guardrail-check -> write one decision. Returns the row."""
     customer_id = event_dict["customer"]["customer_id"]
     past_decisions = _fetch_past_decisions(customer_id)
@@ -138,6 +140,7 @@ def process_event(event_dict: dict) -> dict:
         llm_provider=llm_provider,
         llm_fallback_used=llm_fallback_used,
         customer_message=customer_message,
+        batch_id=batch_id,
     )
     return write_decision(record)
 
@@ -159,11 +162,15 @@ def run_batch(
 ) -> list[dict]:
     """Generate `n` events and process them one at a time.
 
-    `batch_id` is optional and only used by `start_batch` below (the
-    pause/resume kill switch, FEATURES.md #2) — every existing caller that
-    doesn't pass it (including the synchronous tests) runs exactly as
-    before.
+    `batch_id` also tags every event/decision this run writes, so the
+    dashboard can scope its numbers to "the batch that just ran" instead of
+    summing every batch anyone has ever kicked off (see
+    supabase/migrations/0005_batch_scoping.sql) — generated here when a
+    caller (e.g. the synchronous tests) doesn't supply one via
+    `start_batch`, so every run is scoped, not just ones with pause/resume
+    tracking.
     """
+    run_id = batch_id or uuid.uuid4().hex[:12]
     state = batch_state.get(batch_id) if batch_id else None
     events = generate_batch(n, seed=seed)
     if state:
@@ -178,9 +185,9 @@ def run_batch(
             batch_state.wait_if_paused(state)
         if i > 0:
             time.sleep(LLM_CALL_SPACING_SECONDS)
-        row = _event_to_row(event)
+        row = _event_to_row(event, run_id)
         write_event(row)
-        decision = process_event(row["payload"])
+        decision = process_event(row["payload"], batch_id=run_id)
         decisions.append(decision)
         if state:
             state.decisions.append(decision)

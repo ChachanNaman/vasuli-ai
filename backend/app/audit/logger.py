@@ -36,11 +36,13 @@ class DecisionRecord:
     llm_provider: Optional[str]
     llm_fallback_used: bool
     customer_message: Optional[str]
+    batch_id: Optional[str] = None
 
     def to_row(self) -> dict:
         return {
             "event_id": self.event_id,
             "customer_id": self.customer_id,
+            "batch_id": self.batch_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "root_cause": self.root_cause,
             "confidence": self.confidence,
