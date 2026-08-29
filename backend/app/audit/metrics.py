@@ -26,24 +26,49 @@ def get_latest_batch_id() -> Optional[str]:
     return rows[0].get("batch_id") if rows else None
 
 
-def get_metrics_overview() -> dict:
-    """Scoped to the latest batch (see supabase/migrations/0005_batch_scoping.sql)
-    so the dashboard describes the run that just happened rather than the
-    sum of every batch anyone has ever kicked off. Recomputed here in
-    Python rather than via the `metrics_overview` SQL view, since that view
-    aggregates the whole table with no per-batch filter."""
+# Superset of columns every metric function below needs, so one fetch of
+# the latest batch's events/decisions (see _fetch_latest_batch_data) can
+# feed all four of them — each used to independently re-fetch the latest
+# batch_id and re-query events/decisions with its own narrower column
+# list, which was up to ~10 sequential Supabase round trips for a single
+# /api/metrics call. Every field a Fake* test table returns is ignored by
+# the real Supabase client's .select() filtering client-side, so widening
+# these lists doesn't change what any existing caller sees.
+_EVENT_COLUMNS = "event_id, event_type, amount"
+_DECISION_COLUMNS = (
+    "decision_id, event_id, customer_id, timestamp, root_cause, recovered, "
+    "amount_recovered, action_status, action_type, reasoning_text, outcome_notes"
+)
+
+
+def _fetch_latest_batch_data() -> tuple[list[dict], list[dict]]:
+    """One round trip for the latest batch_id, then one each for its
+    events and decisions — the shared dataset behind get_dashboard_metrics
+    below."""
     batch_id = get_latest_batch_id()
     supabase = get_supabase()
-
-    events_query = supabase.table("events").select("event_id, amount")
-    decisions_query = supabase.table("decisions").select(
-        "decision_id, recovered, amount_recovered, action_status, action_type"
-    )
+    events_query = supabase.table("events").select(_EVENT_COLUMNS)
+    decisions_query = supabase.table("decisions").select(_DECISION_COLUMNS)
     if batch_id:
         events_query = events_query.eq("batch_id", batch_id)
         decisions_query = decisions_query.eq("batch_id", batch_id)
     events = events_query.execute().data or []
     decisions = decisions_query.execute().data or []
+    return events, decisions
+
+
+def get_metrics_overview(
+    events: Optional[list[dict]] = None, decisions: Optional[list[dict]] = None
+) -> dict:
+    """Scoped to the latest batch (see supabase/migrations/0005_batch_scoping.sql)
+    so the dashboard describes the run that just happened rather than the
+    sum of every batch anyone has ever kicked off. Recomputed here in
+    Python rather than via the `metrics_overview` SQL view, since that view
+    aggregates the whole table with no per-batch filter. Callers that
+    already have the latest batch's events/decisions (get_dashboard_metrics)
+    pass them in directly instead of triggering another fetch."""
+    if events is None or decisions is None:
+        events, decisions = _fetch_latest_batch_data()
 
     total_decisions = len(decisions)
     recovered_count = sum(1 for d in decisions if d.get("recovered"))
@@ -74,14 +99,10 @@ def get_metrics_overview() -> dict:
     }
 
 
-def get_metrics_by_root_cause() -> list[dict]:
+def get_metrics_by_root_cause(decisions: Optional[list[dict]] = None) -> list[dict]:
     """Scoped to the latest batch, same reasoning as get_metrics_overview."""
-    batch_id = get_latest_batch_id()
-    supabase = get_supabase()
-    query = supabase.table("decisions").select("root_cause, recovered, amount_recovered")
-    if batch_id:
-        query = query.eq("batch_id", batch_id)
-    decisions = query.execute().data or []
+    if decisions is None:
+        _, decisions = _fetch_latest_batch_data()
 
     by_cause: dict[str, dict] = {}
     for d in decisions:
@@ -106,27 +127,18 @@ def get_metrics_by_root_cause() -> list[dict]:
     return result
 
 
-def get_exceptions() -> list[dict]:
+def get_exceptions(decisions: Optional[list[dict]] = None) -> list[dict]:
     """Scoped to the latest batch, same reasoning as get_metrics_overview."""
-    batch_id = get_latest_batch_id()
-    supabase = get_supabase()
-    query = (
-        supabase.table("decisions")
-        .select(
-            "decision_id, event_id, customer_id, timestamp, root_cause, "
-            "action_type, action_status, reasoning_text, outcome_notes"
-        )
-        .order("timestamp", desc=True)
-    )
-    if batch_id:
-        query = query.eq("batch_id", batch_id)
-    decisions = query.execute().data or []
-    return [
+    if decisions is None:
+        _, decisions = _fetch_latest_batch_data()
+    exceptions = [
         d
         for d in decisions
         if d.get("action_type") in ("flag_for_human_review", "no_action_recommended")
         or d.get("action_status") in ("blocked_by_guardrail", "skipped_opt_out")
     ]
+    exceptions.sort(key=lambda d: d["timestamp"], reverse=True)
+    return exceptions
 
 
 # ---------------------------------------------------------------------------
@@ -144,7 +156,9 @@ def get_exceptions() -> list[dict]:
 AVERAGE_DAILY_REVENUE_INR = 800_000
 
 
-def get_cash_flow_metrics() -> dict:
+def get_cash_flow_metrics(
+    events: Optional[list[dict]] = None, decisions: Optional[list[dict]] = None
+) -> dict:
     """Derived-metrics-only — no new tables, no new columns. Computes:
 
     - days_of_reduced_receivables: total recovered / assumed avg daily
@@ -157,15 +171,8 @@ def get_cash_flow_metrics() -> dict:
     Both are None when there's no data yet to divide by, rather than a
     misleading 0%.
     """
-    batch_id = get_latest_batch_id()
-    supabase = get_supabase()
-    decisions_query = supabase.table("decisions").select("event_id, recovered, amount_recovered")
-    events_query = supabase.table("events").select("event_id, event_type, amount")
-    if batch_id:
-        decisions_query = decisions_query.eq("batch_id", batch_id)
-        events_query = events_query.eq("batch_id", batch_id)
-    decisions = decisions_query.execute().data or []
-    events = events_query.execute().data or []
+    if events is None or decisions is None:
+        events, decisions = _fetch_latest_batch_data()
     event_by_id = {e["event_id"]: e for e in events}
 
     total_recovered = sum(d["amount_recovered"] for d in decisions if d.get("recovered"))
@@ -197,4 +204,21 @@ def get_cash_flow_metrics() -> dict:
         "subscription_mrr_at_risk": subscription_at_risk,
         "subscription_mrr_recovered": subscription_recovered,
         "pct_at_risk_mrr_prevented": pct_at_risk_mrr_prevented,
+    }
+
+
+def get_dashboard_metrics() -> dict:
+    """The actual /api/metrics response. Fetches the latest batch's
+    events/decisions exactly once (3 Supabase round trips total) and
+    hands that same data to all four metric functions, instead of each
+    one independently re-fetching the latest batch_id and re-querying
+    events/decisions (previously ~10 sequential round trips for one page
+    load — a real chunk of the dashboard's load time on top of whatever
+    the backend's cold-start latency already costs)."""
+    events, decisions = _fetch_latest_batch_data()
+    return {
+        "overview": get_metrics_overview(events, decisions),
+        "by_root_cause": get_metrics_by_root_cause(decisions),
+        "exceptions": get_exceptions(decisions),
+        "cash_flow": get_cash_flow_metrics(events, decisions),
     }

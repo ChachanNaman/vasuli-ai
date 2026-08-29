@@ -24,13 +24,7 @@ from pydantic import BaseModel
 from app.agents.prompts import ALLOWED_ACTIONS
 from app.api import batch_state
 from app.api.pipeline import _fetch_past_decisions, start_batch
-from app.audit.metrics import (
-    get_cash_flow_metrics,
-    get_exceptions,
-    get_latest_batch_id,
-    get_metrics_by_root_cause,
-    get_metrics_overview,
-)
+from app.audit.metrics import get_dashboard_metrics, get_latest_batch_id
 from app.audit.supabase_client import get_supabase
 from app.audit.verify import verify_chain
 from app.eval.diagnosis_agreement import run_diagnosis_agreement
@@ -283,12 +277,7 @@ def api_eval_diagnosis_agreement(
 
 @app.get("/api/metrics")
 def api_get_metrics():
-    return {
-        "overview": get_metrics_overview(),
-        "by_root_cause": get_metrics_by_root_cause(),
-        "exceptions": get_exceptions(),
-        "cash_flow": get_cash_flow_metrics(),
-    }
+    return get_dashboard_metrics()
 
 
 @app.get("/api/audit/verify")
