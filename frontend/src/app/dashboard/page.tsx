@@ -49,6 +49,11 @@ export default function DashboardPage() {
         <RunBatchButton />
       </header>
 
+      <div className="rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
+        Live data can take 10–15 seconds to fetch after a batch finishes — please wait for the
+        numbers below to update.
+      </div>
+
       <KpiRow overview={metricsQuery.data?.overview} cashFlow={metricsQuery.data?.cash_flow} />
 
       <Tabs defaultValue="overview" className="w-full">
