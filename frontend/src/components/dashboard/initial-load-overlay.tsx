@@ -66,33 +66,29 @@ export function InitialLoadOverlay({ loading }: { loading: boolean }) {
           className="absolute inset-0 z-30 flex items-center justify-center rounded-2xl bg-background/40 backdrop-blur-sm"
         >
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.35, ease: EASE_OUT }}
-            className="flex flex-col items-center gap-5 rounded-2xl border border-border/60 bg-background/85 px-14 py-11 text-center shadow-[0_20px_50px_-25px_rgb(0,0,0,0.4)] backdrop-blur-md"
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.3, ease: EASE_OUT }}
+            className="flex items-center gap-3 rounded-xl border border-border/60 bg-background/85 px-4 py-3 shadow-[0_12px_30px_-18px_rgb(0,0,0,0.4)] backdrop-blur-md"
           >
-            <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Sparkles className="size-6" />
+            <Sparkles className="size-4 shrink-0 text-primary" />
+
+            <span className="font-mono text-sm font-semibold tabular-nums leading-none text-foreground">
+              {percent}%
             </span>
 
-            <div className="flex flex-col items-center gap-3">
-              <span
-                className="font-mono font-semibold tabular-nums leading-none tracking-tight text-foreground"
-                style={{ fontSize: "clamp(3rem, 6vw, 4.5rem)" }}
-              >
-                {percent}%
-              </span>
-              <span className="block h-1.5 w-56 overflow-hidden rounded-full bg-foreground/10">
-                <motion.span
-                  className="block h-full rounded-full bg-primary"
-                  animate={{ width: `${percent}%` }}
-                  transition={{ duration: 0.2, ease: EASE_OUT }}
-                />
-              </span>
-            </div>
+            <span className="block h-1 w-20 overflow-hidden rounded-full bg-foreground/10">
+              <motion.span
+                className="block h-full rounded-full bg-primary"
+                animate={{ width: `${percent}%` }}
+                transition={{ duration: 0.2, ease: EASE_OUT }}
+              />
+            </span>
 
-            <p className="font-mono text-sm text-muted-foreground">Loading live data…</p>
+            <p className="whitespace-nowrap font-mono text-xs text-muted-foreground">
+              Loading live data…
+            </p>
           </motion.div>
         </motion.div>
       )}
