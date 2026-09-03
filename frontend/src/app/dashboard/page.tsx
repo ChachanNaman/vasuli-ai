@@ -17,6 +17,7 @@ import { DiagnosisAgreementCard } from "@/components/dashboard/diagnosis-agreeme
 import { EventDrillDown } from "@/components/dashboard/event-drill-down";
 import { RunBatchButton } from "@/components/dashboard/run-batch-button";
 import { BatchLoadingOverlay } from "@/components/dashboard/batch-loading-overlay";
+import { InitialLoadOverlay } from "@/components/dashboard/initial-load-overlay";
 import { AmbientBackground } from "@/components/motion/ambient-background";
 import { useBatchRun } from "@/hooks/use-batch-run";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,6 +55,14 @@ export default function DashboardPage() {
     (batch.startMutation.isPending || batch.isActive || batch.status?.status === "completed") &&
     batch.batchId !== dismissedBatchId;
 
+  // First paint of the dashboard: metrics/decisions are both fetching for
+  // the first time and there's nothing on screen yet — cover it until they
+  // land instead of showing empty chart shells. `isLoading` (not
+  // `isFetching`) so this never re-triggers on the background refetches a
+  // batch run kicks off — that case is BatchLoadingOverlay's job.
+  const initialLoadVisible =
+    (metricsQuery.isLoading || decisionsQuery.isLoading) && !overlayVisible;
+
   const handleSelect = (decision: DecisionRow) => {
     setSelectedDecision(decision);
     setDrillDownOpen(true);
@@ -77,11 +86,7 @@ export default function DashboardPage() {
         status={batch.status}
         starting={batch.startMutation.isPending}
       />
-
-      <div className="rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
-        Live data can take 10–15 seconds to fetch after a batch finishes — please wait for the
-        numbers below to update.
-      </div>
+      <InitialLoadOverlay visible={initialLoadVisible} />
 
       <KpiRow overview={metricsQuery.data?.overview} cashFlow={metricsQuery.data?.cash_flow} />
 
