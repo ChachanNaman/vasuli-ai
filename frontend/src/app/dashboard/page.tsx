@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
@@ -16,7 +16,9 @@ import { StabilityCard } from "@/components/dashboard/stability-card";
 import { DiagnosisAgreementCard } from "@/components/dashboard/diagnosis-agreement-card";
 import { EventDrillDown } from "@/components/dashboard/event-drill-down";
 import { RunBatchButton } from "@/components/dashboard/run-batch-button";
+import { BatchLoadingOverlay } from "@/components/dashboard/batch-loading-overlay";
 import { AmbientBackground } from "@/components/motion/ambient-background";
+import { useBatchRun } from "@/hooks/use-batch-run";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DecisionRow } from "@/lib/types";
@@ -30,6 +32,27 @@ export default function DashboardPage() {
     queryKey: ["decisions"],
     queryFn: () => getDecisions(200),
   });
+
+  const batch = useBatchRun();
+
+  // The batch reports "completed" the instant the last event is processed,
+  // but the invalidated metrics/decisions queries it triggers still need a
+  // round trip to land — hold the overlay a beat past 100% so it never
+  // drops onto stale numbers. Tracking *which* batch was last dismissed
+  // (rather than a plain boolean) means a fresh run automatically shows the
+  // overlay again without needing a separate reset.
+  const [dismissedBatchId, setDismissedBatchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (batch.status?.status !== "completed" || !batch.batchId) return;
+    const id = batch.batchId;
+    const timer = setTimeout(() => setDismissedBatchId(id), 900);
+    return () => clearTimeout(timer);
+  }, [batch.status?.status, batch.batchId]);
+
+  const overlayVisible =
+    (batch.startMutation.isPending || batch.isActive || batch.status?.status === "completed") &&
+    batch.batchId !== dismissedBatchId;
 
   const handleSelect = (decision: DecisionRow) => {
     setSelectedDecision(decision);
@@ -46,8 +69,14 @@ export default function DashboardPage() {
           </Link>
           <h1 className="text-xl font-semibold mt-1">Recovery dashboard</h1>
         </div>
-        <RunBatchButton />
+        <RunBatchButton batch={batch} />
       </header>
+
+      <BatchLoadingOverlay
+        visible={overlayVisible}
+        status={batch.status}
+        starting={batch.startMutation.isPending}
+      />
 
       <div className="rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
         Live data can take 10–15 seconds to fetch after a batch finishes — please wait for the

@@ -5,7 +5,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { MessageCircle, X, ArrowUp, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
-import { LoadingLine } from "@/components/motion/loading-line";
+import { ReasoningText } from "@/components/agents/loading-states/reasoning-text";
+
+const THINKING_PHRASES = ["Thinking", "Checking the guardrails", "Reasoning", "Composing"];
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -116,10 +118,12 @@ export function ChatWidget() {
                   </motion.div>
                 ))}
                 {pending && (
-                  <div className="space-y-1.5 w-24">
-                    <p className="text-xs text-muted-foreground">Thinking…</p>
-                    <LoadingLine />
-                  </div>
+                  <ReasoningText
+                    variant="scramble"
+                    phrases={THINKING_PHRASES}
+                    interval={1100}
+                    className="text-xs"
+                  />
                 )}
               </div>
 
