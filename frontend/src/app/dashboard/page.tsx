@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
@@ -16,7 +16,6 @@ import { StabilityCard } from "@/components/dashboard/stability-card";
 import { DiagnosisAgreementCard } from "@/components/dashboard/diagnosis-agreement-card";
 import { EventDrillDown } from "@/components/dashboard/event-drill-down";
 import { RunBatchButton } from "@/components/dashboard/run-batch-button";
-import { BatchLoadingOverlay } from "@/components/dashboard/batch-loading-overlay";
 import { InitialLoadOverlay } from "@/components/dashboard/initial-load-overlay";
 import { AmbientBackground } from "@/components/motion/ambient-background";
 import { useBatchRun } from "@/hooks/use-batch-run";
@@ -36,32 +35,15 @@ export default function DashboardPage() {
 
   const batch = useBatchRun();
 
-  // The batch reports "completed" the instant the last event is processed,
-  // but the invalidated metrics/decisions queries it triggers still need a
-  // round trip to land — hold the overlay a beat past 100% so it never
-  // drops onto stale numbers. Tracking *which* batch was last dismissed
-  // (rather than a plain boolean) means a fresh run automatically shows the
-  // overlay again without needing a separate reset.
-  const [dismissedBatchId, setDismissedBatchId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (batch.status?.status !== "completed" || !batch.batchId) return;
-    const id = batch.batchId;
-    const timer = setTimeout(() => setDismissedBatchId(id), 900);
-    return () => clearTimeout(timer);
-  }, [batch.status?.status, batch.batchId]);
-
-  const overlayVisible =
-    (batch.startMutation.isPending || batch.isActive || batch.status?.status === "completed") &&
-    batch.batchId !== dismissedBatchId;
-
-  // First paint of the dashboard: metrics/decisions are both fetching for
-  // the first time and there's nothing on screen yet — cover it until they
-  // land instead of showing empty chart shells. `isLoading` (not
-  // `isFetching`) so this never re-triggers on the background refetches a
-  // batch run kicks off — that case is BatchLoadingOverlay's job.
-  const initialLoadVisible =
-    (metricsQuery.isLoading || decisionsQuery.isLoading) && !overlayVisible;
+  // First paint of the dashboard — metrics/decisions are both fetching for
+  // the first time and there's nothing on screen yet. This is what "Run
+  // live batch" on the landing page lands on, and the Render backend can
+  // take 10-15s to answer, so cover the content area until they land
+  // instead of showing empty chart shells. `isLoading` (not `isFetching`)
+  // so this never re-triggers on the background refetches a recovery-batch
+  // run kicks off — that flow stays inline-only on the button itself, same
+  // as it's always been.
+  const initialLoading = metricsQuery.isLoading || decisionsQuery.isLoading;
 
   const handleSelect = (decision: DecisionRow) => {
     setSelectedDecision(decision);
@@ -81,72 +63,69 @@ export default function DashboardPage() {
         <RunBatchButton batch={batch} />
       </header>
 
-      <BatchLoadingOverlay
-        visible={overlayVisible}
-        status={batch.status}
-        starting={batch.startMutation.isPending}
-      />
-      <InitialLoadOverlay visible={initialLoadVisible} />
+      <div className="relative space-y-6">
+        <InitialLoadOverlay loading={initialLoading} />
 
-      <KpiRow overview={metricsQuery.data?.overview} cashFlow={metricsQuery.data?.cash_flow} />
+        <KpiRow overview={metricsQuery.data?.overview} cashFlow={metricsQuery.data?.cash_flow} />
 
-      <Tabs defaultValue="overview" className="w-full">
-        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:overflow-visible md:px-0">
-          <TabsList className="w-max md:w-fit">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="live-feed">Live agent feed</TabsTrigger>
-            <TabsTrigger value="exceptions">
-              Exceptions
-              {metricsQuery.data && metricsQuery.data.overview.exception_count > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">
-                  ({metricsQuery.data.overview.exception_count})
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="vs-baseline">vs. Baseline</TabsTrigger>
-          </TabsList>
-        </div>
+        <Tabs defaultValue="overview" className="w-full">
+          <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:overflow-visible md:px-0">
+            <TabsList className="w-max md:w-fit">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="live-feed">Live agent feed</TabsTrigger>
+              <TabsTrigger value="exceptions">
+                Exceptions
+                {metricsQuery.data && metricsQuery.data.overview.exception_count > 0 && (
+                  <span className="ml-1.5 text-xs text-muted-foreground">
+                    ({metricsQuery.data.overview.exception_count})
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="vs-baseline">vs. Baseline</TabsTrigger>
+            </TabsList>
+          </div>
 
-        <TabsContent value="overview" className="space-y-4 mt-4">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 gap-4"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Recovery by cause</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RecoveryByCauseChart data={metricsQuery.data?.by_root_cause ?? []} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Recovery over time</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RecoveryOverTimeChart decisions={decisionsQuery.data ?? []} />
-              </CardContent>
-            </Card>
-            <FairnessCard />
-          </motion.div>
-        </TabsContent>
+          <TabsContent value="overview" className="space-y-4 mt-4">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-1 gap-4"
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">Recovery by cause</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RecoveryByCauseChart data={metricsQuery.data?.by_root_cause ?? []} />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">Recovery over time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RecoveryOverTimeChart decisions={decisionsQuery.data ?? []} />
+                </CardContent>
+              </Card>
+              <FairnessCard />
+            </motion.div>
+          </TabsContent>
 
-        <TabsContent value="live-feed" className="mt-4">
-          <LiveFeed initialDecisions={decisionsQuery.data ?? []} onSelect={handleSelect} />
-        </TabsContent>
+          <TabsContent value="live-feed" className="mt-4">
+            <LiveFeed initialDecisions={decisionsQuery.data ?? []} onSelect={handleSelect} />
+          </TabsContent>
 
-        <TabsContent value="exceptions" className="mt-4">
-          <ExceptionsTab exceptions={metricsQuery.data?.exceptions ?? []} />
-        </TabsContent>
+          <TabsContent value="exceptions" className="mt-4">
+            <ExceptionsTab exceptions={metricsQuery.data?.exceptions ?? []} />
+          </TabsContent>
 
-        <TabsContent value="vs-baseline" className="mt-4 space-y-4">
-          <BaselineComparison />
-          <StabilityCard />
-          <DiagnosisAgreementCard />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="vs-baseline" className="mt-4 space-y-4">
+            <BaselineComparison />
+            <StabilityCard />
+            <DiagnosisAgreementCard />
+          </TabsContent>
+        </Tabs>
+      </div>
 
       <EventDrillDown
         decision={selectedDecision}
