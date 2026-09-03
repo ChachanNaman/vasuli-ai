@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Loader2 } from "lucide-react";
+import { Loader } from "@/components/motion/loader";
 import { EASE_OUT } from "@/lib/ease";
 
 /**
@@ -28,10 +28,9 @@ export function InitialLoadOverlay({ visible }: { visible: boolean }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.3, ease: EASE_OUT }}
-            className="flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-background/70 px-8 py-6 shadow-[0_20px_50px_-25px_rgb(0,0,0,0.4)] backdrop-blur-md"
+            className="flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-background/70 px-8 py-6 text-primary shadow-[0_20px_50px_-25px_rgb(0,0,0,0.4)] backdrop-blur-md"
           >
-            <Loader2 className="size-5 animate-spin text-primary" />
-            <p className="font-mono text-xs text-muted-foreground">Loading live data…</p>
+            <Loader variant="percent" size={44} speed={1.3} label="Loading live data" />
           </motion.div>
         </motion.div>
       )}
