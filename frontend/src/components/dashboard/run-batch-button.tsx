@@ -42,6 +42,11 @@ export function RunBatchButton({ batch }: { batch: UseBatchRun }) {
             Last batch failed: {status.error}
           </p>
         )}
+        {startMutation.isError && (
+          <p className="text-xs text-destructive max-w-56 text-right">
+            Couldn&apos;t start the batch: {startMutation.error.message}
+          </p>
+        )}
       </div>
     );
   }

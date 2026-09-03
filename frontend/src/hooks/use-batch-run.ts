@@ -49,6 +49,12 @@ export function useBatchRun(n = 12) {
 
   const startMutation = useMutation({
     mutationFn: () => startBatch(n),
+    // The Render free-tier backend spins down after idle and takes 30-50s to
+    // wake up on the first request, which surfaces to the browser as a
+    // failed/CORS-blocked fetch rather than a slow one — retry with backoff
+    // instead of giving up after a single cold-start failure.
+    retry: 4,
+    retryDelay: (attempt) => Math.min(3000 * 2 ** attempt, 15000),
     onSuccess: (data) => {
       setBatchId(data.batch_id);
       // The backend scopes /api/metrics and /api/decisions to whichever
